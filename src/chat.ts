@@ -10,9 +10,7 @@ export interface GeminiTextChatMessage {
   text: string;
 }
 
-export function createGeminiTextChatHistory(
-  messages: GeminiTextChatMessage[],
-): Content[] {
+export function createGeminiTextChatHistory(messages: GeminiTextChatMessage[]): Content[] {
   return messages.map((message) => ({
     role: message.role,
     parts: [{ text: message.text }],
@@ -95,9 +93,7 @@ export class GeminiChatService extends GeminiBaseService {
    * @param message The input message, either as a plain string or an array of `Part` objects.
    * @returns A Promise resolving to the model's response.
    */
-  public async sendMessage(
-    message: string | Part[],
-  ): Promise<GenerateContentResponse> {
+  public async sendMessage(message: string | Part[]): Promise<GenerateContentResponse> {
     const chat = this.initSession();
     const model = this.options.model || "gemini-3-flash-preview";
 

@@ -90,10 +90,7 @@ export class GeminiImageService extends GeminiBaseService {
    * @param options Extensive configuration covering model, size, aspect ratio, and multimodal responses.
    * @returns A Promise resolving to a GenerateImageResult containing the Data URI and/or descriptive text.
    */
-  public async generateImage(
-    prompt: string,
-    options?: GenerateImageOptions,
-  ): Promise<GenerateImageResult> {
+  public async generateImage(prompt: string, options?: GenerateImageOptions): Promise<GenerateImageResult> {
     const model = options?.model || "gemini-2.5-flash-image";
     const parts: Part[] = [];
 
@@ -101,13 +98,8 @@ export class GeminiImageService extends GeminiBaseService {
     parts.push({ text: prompt });
 
     // Add reference image if provided
-    if (
-      options?.existingImageUrl &&
-      options.existingImageUrl.startsWith("data:image")
-    ) {
-      const match = options.existingImageUrl.match(
-        /^data:(image\/[^;]+);base64,(.+)$/,
-      );
+    if (options?.existingImageUrl && options.existingImageUrl.startsWith("data:image")) {
+      const match = options.existingImageUrl.match(/^data:(image\/[^;]+);base64,(.+)$/);
       if (match) {
         parts.push(GeminiAttachmentHelper.CreateFromBase64(match[2], match[1]));
       }
@@ -140,15 +132,8 @@ export class GeminiImageService extends GeminiBaseService {
     // Handle blocked or errored generation
     if (!candidate || !candidate.content?.parts) {
       geminiLog.warn("Gemini response:", response);
-      const blockReason =
-        candidate?.finishReason ||
-        candidate?.finishMessage ||
-        response.promptFeedback?.blockReason;
-      throw new Error(
-        blockReason
-          ? `Generation blocked: ${String(blockReason)}`
-          : "No image returned from Gemini",
-      );
+      const blockReason = candidate?.finishReason || candidate?.finishMessage || response.promptFeedback?.blockReason;
+      throw new Error(blockReason ? `Generation blocked: ${String(blockReason)}` : "No image returned from Gemini");
     }
 
     const result: GenerateImageResult = {

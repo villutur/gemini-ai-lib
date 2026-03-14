@@ -7,10 +7,7 @@ import { GeminiBaseService } from "./base.js";
  * Uses the current Gemini 3 preview models by default, while still allowing
  * callers to pass an explicit model string when needed.
  */
-export type TextGenerationModel =
-  | "gemini-3-pro-preview"
-  | "gemini-3-flash-preview"
-  | string;
+export type TextGenerationModel = "gemini-3-pro-preview" | "gemini-3-flash-preview" | string;
 
 /**
  * Options for generating text responses using Gemini.
@@ -156,10 +153,7 @@ export class GeminiTextService extends GeminiBaseService {
    * @param options Configuration options for generation.
    * @returns A Promise resolving directly to the generated text string.
    */
-  public async generateTextString(
-    prompt: string,
-    options?: GenerateTextOptions,
-  ): Promise<string> {
+  public async generateTextString(prompt: string, options?: GenerateTextOptions): Promise<string> {
     const response = await this.generateText(prompt, options);
     return response.text || "";
   }

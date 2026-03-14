@@ -44,9 +44,7 @@ function normalizeLegacyLogArguments(args: unknown[]) {
   }
 
   return {
-    message:
-      messageParts.join(" ").trim() ||
-      (typeof firstArgument === "string" ? firstArgument : "Gemini event"),
+    message: messageParts.join(" ").trim() || (typeof firstArgument === "string" ? firstArgument : "Gemini event"),
     metadata:
       metadataParts.length === 0
         ? undefined
@@ -70,10 +68,7 @@ export function createConsoleLoggerAdapter(): LoggerAdapter {
   };
 }
 
-export async function emitStructuredLog(
-  logger: LoggerAdapter | undefined,
-  event: StructuredLogEvent,
-) {
+export async function emitStructuredLog(logger: LoggerAdapter | undefined, event: StructuredLogEvent) {
   if (!logger) {
     return;
   }
