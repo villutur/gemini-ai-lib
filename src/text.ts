@@ -4,9 +4,13 @@ import { GeminiBaseService } from "./base.js";
 
 /**
  * Supported models for text generation tasks.
- * Utilizes standard, fast, and pro variations of the Gemini models.
+ * Uses the current Gemini 3 preview models by default, while still allowing
+ * callers to pass an explicit model string when needed.
  */
-export type TextGenerationModel = "gemini-3-pro-preview" | "gemini-3-flash-preview" | "gemini-2.5-flash-lite" | string;
+export type TextGenerationModel =
+  | "gemini-3-pro-preview"
+  | "gemini-3-flash-preview"
+  | string;
 
 /**
  * Options for generating text responses using Gemini.
@@ -78,7 +82,7 @@ export class GeminiTextService extends GeminiBaseService {
 
   /**
    * High-speed text generation optimized for low latency tasks.
-   * Uses the `gemini-2.5-flash-lite` model by default for faster response times.
+   * Uses `gemini-3-flash-preview` by default for a fast general-purpose path.
    *
    * @param prompt The string prompt for the fast generation task.
    * @param options Configuration options (excluding the model overrides).
@@ -87,7 +91,7 @@ export class GeminiTextService extends GeminiBaseService {
   public async generateFastText(prompt: string, options?: Omit<GenerateTextOptions, "model">): Promise<GenerateContentResponse> {
     return this.generateText(prompt, {
       ...options,
-      model: "gemini-2.5-flash-lite",
+      model: "gemini-3-flash-preview",
     });
   }
 

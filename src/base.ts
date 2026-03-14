@@ -37,12 +37,13 @@ export abstract class GeminiBaseService {
 
   /**
    * Resolves the Gemini API key from standard environment variables.
-   * Prefers NEXT_PUBLIC_GEMINI_API_KEY for client-side, fallback to GEMINI_API_KEY.
+   * Prefers GEMINI_API_KEY for server-side use, with NEXT_PUBLIC_GEMINI_API_KEY
+   * as an explicit browser-oriented fallback.
    *
    * @returns The resolved API key string, or an empty string if none is found.
    */
   private resolveApiKey(): string {
-    return process.env.NEXT_PUBLIC_GEMINI_API_KEY || process.env.GEMINI_API_KEY || "";
+    return process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
   }
 
   /**

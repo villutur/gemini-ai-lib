@@ -1,12 +1,31 @@
 import { Chat, GenerateContentResponse } from "@google/genai";
-import type { GenerateContentConfig, Part } from "@google/genai";
-import { GeminiBaseService } from "./base.js";
+import type { Content, GenerateContentConfig, Part } from "@google/genai";
+import {
+  GeminiBaseService,
+  type GeminiServiceOptions,
+} from "./base.js";
 import type { TextGenerationModel } from "./text.js";
+
+export type GeminiTextChatMessageRole = "user" | "model";
+
+export interface GeminiTextChatMessage {
+  role: GeminiTextChatMessageRole;
+  text: string;
+}
+
+export function createGeminiTextChatHistory(
+  messages: GeminiTextChatMessage[],
+): Content[] {
+  return messages.map((message) => ({
+    role: message.role,
+    parts: [{ text: message.text }],
+  }));
+}
 
 /**
  * Options for configuring a persistent chat session.
  */
-export interface ChatSessionOptions {
+export interface ChatSessionOptions extends GeminiServiceOptions {
   /** The specific text generation model to use. Defaults to 'gemini-3-flash-preview'. */
   model?: TextGenerationModel;
   /** System instructions to set the initial behavior and persona of the chat model. */
@@ -19,6 +38,8 @@ export interface ChatSessionOptions {
   safetySettings?: GenerateContentConfig["safetySettings"];
   /** Identifier for cached content, useful for reusing large contexts across sessions. */
   cachedContent?: string;
+  /** Optional initial conversation history for the chat session. */
+  history?: Content[];
 }
 
 /**
@@ -37,7 +58,7 @@ export class GeminiChatService extends GeminiBaseService {
    * @param options Configuration options for the chat session.
    */
   constructor(options: ChatSessionOptions = {}) {
-    super();
+    super(options);
     this.options = options;
   }
 
@@ -64,6 +85,7 @@ export class GeminiChatService extends GeminiBaseService {
     this.chatSession = this.ai.chats.create({
       model: model,
       config: config,
+      history: this.options.history,
     });
 
     return this.chatSession;
@@ -79,6 +101,17 @@ export class GeminiChatService extends GeminiBaseService {
   public async sendMessage(message: string | Part[]): Promise<GenerateContentResponse> {
     const chat = this.initSession();
     return await chat.sendMessage({ message });
+  }
+
+  /**
+   * Helper to return only the plain text portion of a chat reply.
+   *
+   * @param message The input message for the next chat turn.
+   * @returns A Promise resolving to the response text, or an empty string.
+   */
+  public async sendMessageString(message: string | Part[]): Promise<string> {
+    const response = await this.sendMessage(message);
+    return response.text || "";
   }
 
   /**
