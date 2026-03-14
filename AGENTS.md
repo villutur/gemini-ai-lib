@@ -16,6 +16,7 @@ workspace.
 - `src/base.ts`: shared Gemini client setup and API key resolution
 - `src/text.ts`: one-shot text generation service
 - `src/chat.ts`: persistent chat session wrapper plus reusable text-history helpers
+- `src/response-metadata.ts`: reusable response-metadata normalization and thinking-config helpers
 - `src/audio.ts`, `src/image.ts`, `src/live.ts`: richer media and live
   integrations
 - `src/helpers.ts`: reusable attachment helpers
@@ -32,6 +33,12 @@ workspace.
 - Keep this package generic and portable. Do not move app-specific model
   allowlists, request validation, route contracts, or UI-facing error messages
   into the library.
+- When model examples or editor-hint unions need updating, use Google's
+  official model index as the source of truth:
+  `https://ai.google.dev/gemini-api/docs/models.md.txt`.
+- Keep thinking-profile mapping and raw Gemini response normalization generic
+  here, but leave app-owned policy such as profile availability, allowlists,
+  telemetry storage, and UI labels to the consuming app.
 - Keep structured logger contracts and lifecycle emission generic here, but let
   consuming apps own the actual sink, storage, retention, and log-history UI.
 - If multiple apps need the same Gemini-history shaping or chat-session helper,

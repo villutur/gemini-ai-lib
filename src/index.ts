@@ -6,5 +6,6 @@ export * from "./audio.js";
 export * from "./image.js";
 export * from "./live.js";
 export * from "./logger.js";
+export * from "./response-metadata.js";
 export { Modality } from "@google/genai";
 export type { FunctionCall, LiveServerMessage, Session } from "@google/genai";

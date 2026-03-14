@@ -35,6 +35,8 @@ export interface ChatSessionOptions extends GeminiServiceOptions {
   cachedContent?: string;
   /** Optional initial conversation history for the chat session. */
   history?: Content[];
+  /** Optional config for model thinking features when the selected model supports them. */
+  thinkingConfig?: GenerateContentConfig["thinkingConfig"];
 }
 
 /**
@@ -75,6 +77,7 @@ export class GeminiChatService extends GeminiBaseService {
       tools: configTools,
       safetySettings: this.options.safetySettings,
       cachedContent: this.options.cachedContent,
+      thinkingConfig: this.options.thinkingConfig,
     };
 
     this.chatSession = this.ai.chats.create({
@@ -107,6 +110,7 @@ export class GeminiChatService extends GeminiBaseService {
         inputType: typeof message === "string" ? "string" : "parts-array",
         historyEntries: this.options.history?.length ?? 0,
         hasSystemInstruction: Boolean(this.options.systemInstruction),
+        thinkingConfig: this.options.thinkingConfig,
       },
     });
 

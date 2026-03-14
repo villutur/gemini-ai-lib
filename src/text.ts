@@ -4,10 +4,18 @@ import { GeminiBaseService } from "./base.js";
 
 /**
  * Supported models for text generation tasks.
- * Uses the current Gemini 3 preview models by default, while still allowing
- * callers to pass an explicit model string when needed.
+ * Highlights the common text-first Gemini 2.5 and 3.x models used in the
+ * workspace, while still allowing callers to pass an explicit model string
+ * when needed.
  */
-export type TextGenerationModel = "gemini-3-pro-preview" | "gemini-3-flash-preview" | string;
+export type TextGenerationModel =
+  | "gemini-2.5-flash-lite"
+  | "gemini-2.5-flash"
+  | "gemini-2.5-pro"
+  | "gemini-3-flash-preview"
+  | "gemini-3.1-flash-lite-preview"
+  | "gemini-3.1-pro-preview"
+  | string;
 
 /**
  * Options for generating text responses using Gemini.
@@ -29,6 +37,8 @@ export interface GenerateTextOptions {
   responseMimeType?: "text/plain" | "application/json";
   /** The schema definition if a structured JSON response is requested. */
   responseSchema?: GenerateContentConfig["responseSchema"];
+  /** Optional config for model thinking features when the selected model supports them. */
+  thinkingConfig?: GenerateContentConfig["thinkingConfig"];
 }
 
 /**
@@ -69,6 +79,7 @@ export class GeminiTextService extends GeminiBaseService {
       cachedContent: options?.cachedContent,
       responseMimeType: options?.responseMimeType,
       responseSchema: options?.responseSchema,
+      thinkingConfig: options?.thinkingConfig,
     };
 
     await this.log({
@@ -82,6 +93,7 @@ export class GeminiTextService extends GeminiBaseService {
         toolCount: configTools?.length ?? 0,
         hasSystemInstruction: Boolean(options?.systemInstruction),
         responseMimeType: options?.responseMimeType,
+        thinkingConfig: options?.thinkingConfig,
       },
     });
 

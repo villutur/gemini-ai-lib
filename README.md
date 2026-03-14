@@ -17,6 +17,11 @@ workspace.
   configuration
 - `GeminiTextService`: one-shot text generation helpers
 - `GeminiChatService`: persistent multi-turn chat wrapper
+- `createGeminiThinkingConfig(...)`: reusable low-level thinking-config helper
+- `createGeminiThinkingConfigForModel(...)`: model-aware helper that keeps
+  `thinkingLevel` and `thinkingBudget` aligned with the selected Gemini model
+- `normalizeGeminiResponseMetadata(...)`: reusable response-metadata normalizer
+  for latency, finish reason, response ids, and usage payloads
 - `GeminiAttachmentHelper`: browser and server helpers for turning files and
   buffers into Gemini `Part` objects
 - structured logging contracts and logger adapters for injecting app-owned
@@ -103,6 +108,43 @@ const textService = new GeminiTextService({
 });
 ```
 
+Apps that own model policy in their own repo can also reuse the library's
+thinking-config and response-metadata helpers without giving up control of
+route contracts or storage.
+
+```ts
+import {
+  createGeminiThinkingConfigForModel,
+  normalizeGeminiResponseMetadata,
+  GeminiTextService,
+} from "gemini-ai-lib";
+
+const service = new GeminiTextService({
+  apiKey: process.env.GEMINI_API_KEY,
+});
+
+const result = await service.generateText(
+  "Compare the rollout risks in three bullets.",
+  {
+    model: "gemini-3.1-pro-preview",
+    thinkingConfig: createGeminiThinkingConfigForModel(
+      "gemini-3.1-pro-preview",
+      {
+        includeThoughts: false,
+      },
+    ),
+  },
+);
+
+const telemetry = normalizeGeminiResponseMetadata(result, {
+  model: "gemini-3.1-pro-preview",
+  modelLabel: "Gemini 3.1 Pro Preview",
+  thinkingMode: "balanced",
+  startedAt: new Date().toISOString(),
+  startedMs: Date.now(),
+});
+```
+
 ## Environment Guidance
 
 - Prefer `GEMINI_API_KEY` for server-side usage.
@@ -116,6 +158,11 @@ The base service now resolves keys in this order:
 1. explicit `apiKey` passed in code
 2. `GEMINI_API_KEY`
 3. `NEXT_PUBLIC_GEMINI_API_KEY`
+
+When examples or app-level model catalogs need refreshing, use Google's
+official Gemini model index as the source of truth:
+
+- https://ai.google.dev/gemini-api/docs/models.md.txt
 
 ## Public Contract
 
