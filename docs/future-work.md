@@ -58,3 +58,13 @@ Status labels:
       Why later: Central observability will be much more useful if Gemini events can carry request, session, model, and status metadata in a consistent way without pushing app-specific storage concerns into the library.
       Related: `src/logger.ts`, `src/base.ts`, `src/text.ts`, `src/chat.ts`, `src/live.ts`
       Revisit when: The first injected logger adapter exists and needs a stable event shape.
+
+## Packaging And Release
+
+- [ ] Add a repo-safe version-bump release script for `gemini-ai-lib`
+      Status: `Planned`
+      Priority: `Medium`
+      Complexity: `Medium`
+      Why later: As the library gets reused across more repos, release steps should be repeatable and guarded. A dedicated script should check that git is fully committed, bump `patch` by default while also supporting `minor`, `major`, or an explicit higher semver, then commit the version change and create the matching git tag.
+      Related: `package.json`, `README.md`
+      Revisit when: `gemini-ai-lib` starts cutting tagged versions often enough that manual release steps stop feeling dependable.

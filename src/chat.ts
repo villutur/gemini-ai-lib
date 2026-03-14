@@ -100,7 +100,57 @@ export class GeminiChatService extends GeminiBaseService {
    */
   public async sendMessage(message: string | Part[]): Promise<GenerateContentResponse> {
     const chat = this.initSession();
-    return await chat.sendMessage({ message });
+    const model = this.options.model || "gemini-3-flash-preview";
+
+    await this.log({
+      level: "info",
+      source: "gemini.chat",
+      message: "Gemini chat message started.",
+      status: "running",
+      metadata: {
+        model,
+        inputType: typeof message === "string" ? "string" : "parts-array",
+        historyEntries: this.options.history?.length ?? 0,
+        hasSystemInstruction: Boolean(this.options.systemInstruction),
+      },
+    });
+
+    try {
+      const response = await chat.sendMessage({ message });
+
+      await this.log({
+        level: "info",
+        source: "gemini.chat",
+        message: "Gemini chat message completed.",
+        status: "success",
+        metadata: {
+          model,
+          textLength: response.text?.length ?? 0,
+          hasText: Boolean(response.text),
+        },
+      });
+
+      return response;
+    } catch (error) {
+      await this.log({
+        level: "error",
+        source: "gemini.chat",
+        message: "Gemini chat message failed.",
+        status: "error",
+        metadata: {
+          model,
+          error:
+            error instanceof Error
+              ? {
+                  name: error.name,
+                  message: error.message,
+                }
+              : { value: String(error) },
+        },
+      });
+
+      throw error;
+    }
   }
 
   /**

@@ -21,7 +21,8 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "build2": "tsc -p tsconfig.json",
-    "dev2": "tsc -p tsconfig.json --watch"
+    "dev2": "tsc -p tsconfig.json --watch",
+    "pretty": "prettier --write \"src/**/*.{js,jsx,mjs,cjs,ts,tsx,json}\""
   },
   "dependencies": {
     "@google/genai": "^1.44.0",
@@ -29,6 +30,7 @@
   },
   "devDependencies": {
     "@types/node": "^20",
+    "prettier": "^3.8.1",
     "tsup": "^8.5.1",
     "typescript": "^5"
   }

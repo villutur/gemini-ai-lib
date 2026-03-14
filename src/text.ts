@@ -71,13 +71,60 @@ export class GeminiTextService extends GeminiBaseService {
       responseSchema: options?.responseSchema,
     };
 
-    const response = await this.ai.models.generateContent({
-      model: model,
-      contents: contents,
-      config: config,
+    await this.log({
+      level: "info",
+      source: "gemini.text",
+      message: "Gemini text generation started.",
+      status: "running",
+      metadata: {
+        model,
+        inputType: typeof input === "string" ? "string" : "content-array",
+        toolCount: configTools?.length ?? 0,
+        hasSystemInstruction: Boolean(options?.systemInstruction),
+        responseMimeType: options?.responseMimeType,
+      },
     });
 
-    return response;
+    try {
+      const response = await this.ai.models.generateContent({
+        model: model,
+        contents: contents,
+        config: config,
+      });
+
+      await this.log({
+        level: "info",
+        source: "gemini.text",
+        message: "Gemini text generation completed.",
+        status: "success",
+        metadata: {
+          model,
+          textLength: response.text?.length ?? 0,
+          hasText: Boolean(response.text),
+        },
+      });
+
+      return response;
+    } catch (error) {
+      await this.log({
+        level: "error",
+        source: "gemini.text",
+        message: "Gemini text generation failed.",
+        status: "error",
+        metadata: {
+          model,
+          error:
+            error instanceof Error
+              ? {
+                  name: error.name,
+                  message: error.message,
+                }
+              : { value: String(error) },
+        },
+      });
+
+      throw error;
+    }
   }
 
   /**

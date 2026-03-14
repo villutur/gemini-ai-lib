@@ -32,6 +32,8 @@ workspace.
 - Keep this package generic and portable. Do not move app-specific model
   allowlists, request validation, route contracts, or UI-facing error messages
   into the library.
+- Keep structured logger contracts and lifecycle emission generic here, but let
+  consuming apps own the actual sink, storage, retention, and log-history UI.
 - If multiple apps need the same Gemini-history shaping or chat-session helper,
   add the generic helper here instead of reimplementing it in each app.
 - When a consuming app needs a better public API, fix the export or helper here

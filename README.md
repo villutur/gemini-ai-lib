@@ -19,7 +19,8 @@ workspace.
 - `GeminiChatService`: persistent multi-turn chat wrapper
 - `GeminiAttachmentHelper`: browser and server helpers for turning files and
   buffers into Gemini `Part` objects
-- `GeminiLogger`: shared logging helper
+- structured logging contracts and logger adapters for injecting app-owned
+  sinks into Gemini request flows
 - `GeminiAudioService`, `GeminiImageService`, and `GeminiLiveService` for the
   richer media and live surfaces already explored in the workspace
 
@@ -81,6 +82,27 @@ const text = await chatService.sendMessageString(
 );
 ```
 
+Apps can also inject their own structured logger adapter when they want Gemini
+request lifecycle events to land in an app-owned sink.
+
+```ts
+import {
+  GeminiTextService,
+  type LoggerAdapter,
+} from "gemini-ai-lib";
+
+const logger: LoggerAdapter = {
+  log(event) {
+    console.log(event.source, event.level, event.message, event.metadata);
+  },
+};
+
+const textService = new GeminiTextService({
+  apiKey: process.env.GEMINI_API_KEY,
+  logger,
+});
+```
+
 ## Environment Guidance
 
 - Prefer `GEMINI_API_KEY` for server-side usage.
@@ -101,6 +123,8 @@ The base service now resolves keys in this order:
 - Keep generic Gemini SDK concerns here.
 - Keep reusable history shaping and portable chat-session helpers here when
   they are app-agnostic.
+- Keep logger contracts and lifecycle emission generic here, while letting the
+  consuming app own storage, retention, and log-history UI.
 - Keep app-specific model allowlists, request validation, transport contracts,
   and user-facing error mapping in the consuming app.
 

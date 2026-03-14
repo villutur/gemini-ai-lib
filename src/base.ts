@@ -1,5 +1,11 @@
 import { GoogleGenAI } from "@google/genai";
 import type { Tool } from "@google/genai";
+import {
+  emitStructuredLog,
+  geminiLogger,
+  type LoggerAdapter,
+  type StructuredLogEvent,
+} from "./logger.js";
 
 /**
  * Options for configuring a Gemini service instance.
@@ -11,6 +17,8 @@ export interface GeminiServiceOptions {
   defaultTools?: Tool[];
   /** The specific API version to use (e.g., 'v1alpha', 'v1beta'). Required for some experimental features. */
   apiVersion?: string;
+  /** Optional injected structured logger adapter used for request and lifecycle events. */
+  logger?: LoggerAdapter;
 }
 
 /**
@@ -22,6 +30,8 @@ export abstract class GeminiBaseService {
   protected ai: GoogleGenAI;
   /** The default tools configured for this service instance. */
   protected defaultTools?: Tool[];
+  /** Optional structured logger adapter for Gemini lifecycle events. */
+  protected logger?: LoggerAdapter;
 
   /**
    * Creates a new instance of a Gemini service.
@@ -33,6 +43,7 @@ export abstract class GeminiBaseService {
     const httpOptions = options?.apiVersion ? { apiVersion: options.apiVersion } : undefined;
     this.ai = new GoogleGenAI({ apiKey, httpOptions });
     this.defaultTools = options?.defaultTools;
+    this.logger = options?.logger ?? geminiLogger;
   }
 
   /**
@@ -51,6 +62,10 @@ export abstract class GeminiBaseService {
    */
   public getClient(): GoogleGenAI {
     return this.ai;
+  }
+
+  protected async log(event: StructuredLogEvent) {
+    await emitStructuredLog(this.logger, event);
   }
 
   /**
