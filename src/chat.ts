@@ -1,9 +1,6 @@
 import { Chat, GenerateContentResponse } from "@google/genai";
 import type { Content, GenerateContentConfig, Part } from "@google/genai";
-import {
-  GeminiBaseService,
-  type GeminiServiceOptions,
-} from "./base.js";
+import { GeminiBaseService, type GeminiServiceOptions } from "./base.js";
 import type { TextGenerationModel } from "./text.js";
 
 export type GeminiTextChatMessageRole = "user" | "model";
@@ -98,7 +95,9 @@ export class GeminiChatService extends GeminiBaseService {
    * @param message The input message, either as a plain string or an array of `Part` objects.
    * @returns A Promise resolving to the model's response.
    */
-  public async sendMessage(message: string | Part[]): Promise<GenerateContentResponse> {
+  public async sendMessage(
+    message: string | Part[],
+  ): Promise<GenerateContentResponse> {
     const chat = this.initSession();
     const model = this.options.model || "gemini-3-flash-preview";
 

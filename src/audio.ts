@@ -24,7 +24,11 @@ export class GeminiAudioService extends GeminiBaseService {
    * @param options Configuration options including voice selection.
    * @returns A Promise resolving to a Node.js Buffer containing the generated audio data.
    */
-  public async generateAudio(text: string, prompt?: string, options?: GenerateAudioOptions): Promise<Buffer> {
+  public async generateAudio(
+    text: string,
+    prompt?: string,
+    options?: GenerateAudioOptions,
+  ): Promise<Buffer> {
     const model = options?.model || "gemini-2.5-flash-preview-tts";
     const voiceName = options?.voiceName || "Kore";
     const combinedText = prompt ? `${prompt} ${text}` : text;
@@ -53,7 +57,9 @@ export class GeminiAudioService extends GeminiBaseService {
 
       const data = content.parts[0].inlineData?.data;
       if (!data) {
-        throw new Error("No audio data returned from Gemini (inline data missing)");
+        throw new Error(
+          "No audio data returned from Gemini (inline data missing)",
+        );
       }
 
       const audioBuffer = Buffer.from(data as string, "base64");

@@ -40,7 +40,9 @@ export abstract class GeminiBaseService {
    */
   constructor(options?: GeminiServiceOptions) {
     const apiKey = options?.apiKey || this.resolveApiKey();
-    const httpOptions = options?.apiVersion ? { apiVersion: options.apiVersion } : undefined;
+    const httpOptions = options?.apiVersion
+      ? { apiVersion: options.apiVersion }
+      : undefined;
     this.ai = new GoogleGenAI({ apiKey, httpOptions });
     this.defaultTools = options?.defaultTools;
     this.logger = options?.logger ?? geminiLogger;
@@ -54,7 +56,9 @@ export abstract class GeminiBaseService {
    * @returns The resolved API key string, or an empty string if none is found.
    */
   private resolveApiKey(): string {
-    return process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
+    return (
+      process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || ""
+    );
   }
 
   /**

@@ -6,10 +6,28 @@ import { geminiLog } from "./logger.js";
 /**
  * Supported Gemini models capable of image generation.
  */
-export type GeminiImageModel = "gemini-2.5-flash-image" | "gemini-3-pro-image-preview" | "gemini-3.1-flash-image-preview";
+export type GeminiImageModel =
+  | "gemini-2.5-flash-image"
+  | "gemini-3-pro-image-preview"
+  | "gemini-3.1-flash-image-preview";
 
 /** Array of supported aspect ratios for Gemini flash image */
-export const FLASH_IMAGE_ASPECT_RATIOS = ["1:1", "1:4", "1:8", "2:3", "3:2", "3:4", "4:1", "4:3", "4:5", "5:4", "8:1", "9:16", "16:9", "21:9"] as const;
+export const FLASH_IMAGE_ASPECT_RATIOS = [
+  "1:1",
+  "1:4",
+  "1:8",
+  "2:3",
+  "3:2",
+  "3:4",
+  "4:1",
+  "4:3",
+  "4:5",
+  "5:4",
+  "8:1",
+  "9:16",
+  "16:9",
+  "21:9",
+] as const;
 
 export type GeminiFlashAspectRatio = (typeof FLASH_IMAGE_ASPECT_RATIOS)[number];
 
@@ -72,7 +90,10 @@ export class GeminiImageService extends GeminiBaseService {
    * @param options Extensive configuration covering model, size, aspect ratio, and multimodal responses.
    * @returns A Promise resolving to a GenerateImageResult containing the Data URI and/or descriptive text.
    */
-  public async generateImage(prompt: string, options?: GenerateImageOptions): Promise<GenerateImageResult> {
+  public async generateImage(
+    prompt: string,
+    options?: GenerateImageOptions,
+  ): Promise<GenerateImageResult> {
     const model = options?.model || "gemini-2.5-flash-image";
     const parts: Part[] = [];
 
@@ -80,15 +101,22 @@ export class GeminiImageService extends GeminiBaseService {
     parts.push({ text: prompt });
 
     // Add reference image if provided
-    if (options?.existingImageUrl && options.existingImageUrl.startsWith("data:image")) {
-      const match = options.existingImageUrl.match(/^data:(image\/[^;]+);base64,(.+)$/);
+    if (
+      options?.existingImageUrl &&
+      options.existingImageUrl.startsWith("data:image")
+    ) {
+      const match = options.existingImageUrl.match(
+        /^data:(image\/[^;]+);base64,(.+)$/,
+      );
       if (match) {
         parts.push(GeminiAttachmentHelper.CreateFromBase64(match[2], match[1]));
       }
     }
 
     const config: GenerateContentConfig = {
-      responseModalities: options?.responseModalities ? (options.responseModalities as unknown as GenerateContentConfig["responseModalities"]) : (["image"] as unknown as GenerateContentConfig["responseModalities"]),
+      responseModalities: options?.responseModalities
+        ? (options.responseModalities as unknown as GenerateContentConfig["responseModalities"])
+        : (["image"] as unknown as GenerateContentConfig["responseModalities"]),
       responseMimeType: options?.responseMimeType,
       responseSchema: options?.responseSchema,
       imageConfig: {
@@ -112,8 +140,15 @@ export class GeminiImageService extends GeminiBaseService {
     // Handle blocked or errored generation
     if (!candidate || !candidate.content?.parts) {
       geminiLog.warn("Gemini response:", response);
-      const blockReason = candidate?.finishReason || candidate?.finishMessage || response.promptFeedback?.blockReason;
-      throw new Error(blockReason ? `Generation blocked: ${String(blockReason)}` : "No image returned from Gemini");
+      const blockReason =
+        candidate?.finishReason ||
+        candidate?.finishMessage ||
+        response.promptFeedback?.blockReason;
+      throw new Error(
+        blockReason
+          ? `Generation blocked: ${String(blockReason)}`
+          : "No image returned from Gemini",
+      );
     }
 
     const result: GenerateImageResult = {

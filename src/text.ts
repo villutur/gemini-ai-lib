@@ -47,7 +47,10 @@ export class GeminiTextService extends GeminiBaseService {
    * @param options Configuration options for the generation process (model, temperature, tools, etc.).
    * @returns A Promise resolving to the complete GenerateContentResponse object.
    */
-  public async generateText(input: string | Array<{ role: "user" | "model"; parts: Part[] }>, options?: GenerateTextOptions): Promise<GenerateContentResponse> {
+  public async generateText(
+    input: string | Array<{ role: "user" | "model"; parts: Part[] }>,
+    options?: GenerateTextOptions,
+  ): Promise<GenerateContentResponse> {
     const model = options?.model || "gemini-3-flash-preview";
 
     // Construct contents
@@ -135,7 +138,10 @@ export class GeminiTextService extends GeminiBaseService {
    * @param options Configuration options (excluding the model overrides).
    * @returns A Promise resolving to the GenerateContentResponse object.
    */
-  public async generateFastText(prompt: string, options?: Omit<GenerateTextOptions, "model">): Promise<GenerateContentResponse> {
+  public async generateFastText(
+    prompt: string,
+    options?: Omit<GenerateTextOptions, "model">,
+  ): Promise<GenerateContentResponse> {
     return this.generateText(prompt, {
       ...options,
       model: "gemini-3-flash-preview",
@@ -150,7 +156,10 @@ export class GeminiTextService extends GeminiBaseService {
    * @param options Configuration options for generation.
    * @returns A Promise resolving directly to the generated text string.
    */
-  public async generateTextString(prompt: string, options?: GenerateTextOptions): Promise<string> {
+  public async generateTextString(
+    prompt: string,
+    options?: GenerateTextOptions,
+  ): Promise<string> {
     const response = await this.generateText(prompt, options);
     return response.text || "";
   }

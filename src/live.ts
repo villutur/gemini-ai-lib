@@ -1,5 +1,15 @@
-import { ActivityHandling, EndSensitivity, Modality, Session, StartSensitivity } from "@google/genai";
-import type { FunctionCall, LiveConnectConfig, LiveServerMessage } from "@google/genai";
+import {
+  ActivityHandling,
+  EndSensitivity,
+  Modality,
+  Session,
+  StartSensitivity,
+} from "@google/genai";
+import type {
+  FunctionCall,
+  LiveConnectConfig,
+  LiveServerMessage,
+} from "@google/genai";
 import { GeminiBaseService } from "./base.js";
 import type { GeminiServiceOptions } from "./base.js";
 import { geminiLog } from "./logger.js";
@@ -15,7 +25,13 @@ export interface LiveToolDefinition {
   /** JSON Schema representing the arguments the model must pass. */
   parametersJsonSchema: Record<string, unknown>;
   /** The local callback to execute when the model calls this tool. */
-  handler?: (args: Record<string, unknown>) => Record<string, unknown> | Promise<Record<string, unknown>> | void | Promise<void>;
+  handler?: (
+    args: Record<string, unknown>,
+  ) =>
+    | Record<string, unknown>
+    | Promise<Record<string, unknown>>
+    | void
+    | Promise<void>;
   /** Additional system instructions specific to this tool added dynamically to the prompt. */
   toolInstructions?: string;
 }
@@ -61,7 +77,11 @@ export interface LiveChatSessionOptions extends GeminiServiceOptions {
   /** Callback fired with streaming transcriptions of the user's spoken input. */
   onInputTranscription?: (transcript: string, isFinal: boolean) => void;
   /** Callback fired when a tool is called by the model. */
-  onToolCall?: (id: string, name: string, args: Record<string, unknown>) => void;
+  onToolCall?: (
+    id: string,
+    name: string,
+    args: Record<string, unknown>,
+  ) => void;
   /** Callback fired when a tool response is returned to the model. */
   onToolResponse?: (id: string, name: string, response: any) => void;
 
@@ -135,8 +155,11 @@ export class GeminiLiveChatSession extends GeminiBaseService {
    */
   constructor(options: LiveChatSessionOptions = {}) {
     // If v1alpha features are needed, set apiVersion
-    const needsAlpha = options.enableAffectiveDialog || options.enableProactiveAudio;
-    const effectiveOptions = needsAlpha ? { ...options, apiVersion: "v1alpha" } : options;
+    const needsAlpha =
+      options.enableAffectiveDialog || options.enableProactiveAudio;
+    const effectiveOptions = needsAlpha
+      ? { ...options, apiVersion: "v1alpha" }
+      : options;
     super(effectiveOptions);
     this.options = options;
     geminiLog.debug("GeminiLiveChatSession created with options:", options);
@@ -164,7 +187,10 @@ export class GeminiLiveChatSession extends GeminiBaseService {
    * @returns The underlying Session object.
    */
   async connect(greetingPrompt?: string) {
-    geminiLog.debug("Connecting GeminiLiveChatSession with options:", this.options);
+    geminiLog.debug(
+      "Connecting GeminiLiveChatSession with options:",
+      this.options,
+    );
 
     this.isAudioInputConnected = false;
     this.isStopping = false;
@@ -180,10 +206,16 @@ export class GeminiLiveChatSession extends GeminiBaseService {
       await this.audioContext.resume();
 
       // Initialize AudioWorklet immediately within the user gesture
-      await this.audioContext.audioWorklet.addModule(this.options.audioWorkletModulePath || DEFAULT_AUDIO_WORKLET_MODULE_PATH);
+      await this.audioContext.audioWorklet.addModule(
+        this.options.audioWorkletModulePath ||
+          DEFAULT_AUDIO_WORKLET_MODULE_PATH,
+      );
 
       this.source = this.audioContext.createMediaStreamSource(this.stream);
-      this.audioWorkletNode = new AudioWorkletNode(this.audioContext, "audio-processor");
+      this.audioWorkletNode = new AudioWorkletNode(
+        this.audioContext,
+        "audio-processor",
+      );
 
       return await this.connectLiveSession(greetingPrompt);
     } catch (err) {
@@ -200,7 +232,9 @@ export class GeminiLiveChatSession extends GeminiBaseService {
   private async reconnect() {
     const maxAttempts = this.options.maxReconnectAttempts ?? 3;
     if (this.reconnectAttempts >= maxAttempts) {
-      geminiLog.error(`Max reconnect attempts (${maxAttempts}) reached. Giving up.`);
+      geminiLog.error(
+        `Max reconnect attempts (${maxAttempts}) reached. Giving up.`,
+      );
       this.stopStreaming();
       return;
     }
@@ -209,7 +243,9 @@ export class GeminiLiveChatSession extends GeminiBaseService {
     this.isReconnecting = true;
     this.isStopping = false;
 
-    geminiLog.info(`Reconnecting (attempt ${this.reconnectAttempts}/${maxAttempts})...`);
+    geminiLog.info(
+      `Reconnecting (attempt ${this.reconnectAttempts}/${maxAttempts})...`,
+    );
     this.options.onReconnecting?.(this.reconnectAttempts);
 
     // Close old session without tearing down audio
@@ -325,14 +361,18 @@ export class GeminiLiveChatSession extends GeminiBaseService {
   }
 
   private buildSystemInstruction() {
-    const base = this.options.systemInstruction || "You are a helpful AI assistant.";
+    const base =
+      this.options.systemInstruction || "You are a helpful AI assistant.";
 
     if (!this.options.tools?.length) {
       return base.trim();
     }
 
     const toolInstructions = this.options.tools
-      .map((tool) => tool.toolInstructions && `**${tool.name}**: ${tool.toolInstructions}`)
+      .map(
+        (tool) =>
+          tool.toolInstructions && `**${tool.name}**: ${tool.toolInstructions}`,
+      )
       .filter(Boolean)
       .join("\n");
 
@@ -357,7 +397,10 @@ export class GeminiLiveChatSession extends GeminiBaseService {
           this.options.onToolCall?.(id, name, args);
 
           if (!toolDef) {
-            const response = { acknowledged: false, error: `Unsupported tool: ${name}` };
+            const response = {
+              acknowledged: false,
+              error: `Unsupported tool: ${name}`,
+            };
             this.options.onToolResponse?.(id, name, response);
             return {
               id,
@@ -420,10 +463,16 @@ export class GeminiLiveChatSession extends GeminiBaseService {
       systemInstruction: this.buildSystemInstruction(),
       contextWindowCompression: { slidingWindow: {} },
       // Session resumption
-      sessionResumption: this.lastSessionHandle ? { handle: this.lastSessionHandle } : {},
+      sessionResumption: this.lastSessionHandle
+        ? { handle: this.lastSessionHandle }
+        : {},
       // Native audio features
-      ...(this.options.enableAffectiveDialog && { enableAffectiveDialog: true }),
-      ...(this.options.enableProactiveAudio && { proactivity: { proactiveAudio: true } }),
+      ...(this.options.enableAffectiveDialog && {
+        enableAffectiveDialog: true,
+      }),
+      ...(this.options.enableProactiveAudio && {
+        proactivity: { proactiveAudio: true },
+      }),
       // Thinking config
       ...(this.options.thinkingBudget !== undefined && {
         thinkingConfig: {
@@ -437,10 +486,17 @@ export class GeminiLiveChatSession extends GeminiBaseService {
         ...(this.options.vadConfig && {
           automaticActivityDetection: {
             ...(this.options.vadConfig.startSensitivity && {
-              startOfSpeechSensitivity: this.options.vadConfig.startSensitivity === "START_SENSITIVITY_LOW" ? StartSensitivity.START_SENSITIVITY_LOW : StartSensitivity.START_SENSITIVITY_HIGH,
+              startOfSpeechSensitivity:
+                this.options.vadConfig.startSensitivity ===
+                "START_SENSITIVITY_LOW"
+                  ? StartSensitivity.START_SENSITIVITY_LOW
+                  : StartSensitivity.START_SENSITIVITY_HIGH,
             }),
             ...(this.options.vadConfig.endSensitivity && {
-              endOfSpeechSensitivity: this.options.vadConfig.endSensitivity === "END_SENSITIVITY_LOW" ? EndSensitivity.END_SENSITIVITY_LOW : EndSensitivity.END_SENSITIVITY_HIGH,
+              endOfSpeechSensitivity:
+                this.options.vadConfig.endSensitivity === "END_SENSITIVITY_LOW"
+                  ? EndSensitivity.END_SENSITIVITY_LOW
+                  : EndSensitivity.END_SENSITIVITY_HIGH,
             }),
             ...(this.options.vadConfig.prefixPaddingMs !== undefined && {
               prefixPaddingMs: this.options.vadConfig.prefixPaddingMs,
@@ -464,14 +520,21 @@ export class GeminiLiveChatSession extends GeminiBaseService {
               this.audioWorkletNode.port.onmessage = (event) => {
                 if (!this.session) return;
                 const pcmData = event.data;
-                const base64Data = btoa(String.fromCharCode(...new Uint8Array(pcmData)));
+                const base64Data = btoa(
+                  String.fromCharCode(...new Uint8Array(pcmData)),
+                );
                 this.session.sendRealtimeInput({
                   media: { data: base64Data, mimeType: "audio/pcm;rate=24000" },
                 });
               };
             }
 
-            if (!this.isAudioInputConnected && this.source && this.audioWorkletNode && this.audioContext) {
+            if (
+              !this.isAudioInputConnected &&
+              this.source &&
+              this.audioWorkletNode &&
+              this.audioContext
+            ) {
               this.source.connect(this.audioWorkletNode);
               this.audioWorkletNode.connect(this.audioContext.destination);
               this.isAudioInputConnected = true;
@@ -501,7 +564,9 @@ export class GeminiLiveChatSession extends GeminiBaseService {
             }
 
             if (message.setupComplete) {
-              geminiLog.info("Live session setup complete. Model is ready to respond.");
+              geminiLog.info(
+                "Live session setup complete. Model is ready to respond.",
+              );
               this.options.onSetupComplete?.();
 
               if (greetingPrompt) {
@@ -516,14 +581,36 @@ export class GeminiLiveChatSession extends GeminiBaseService {
               void this.handleToolCalls(message);
             }
 
-            const outputTranscription = message.serverContent?.outputTranscription;
-            if (outputTranscription?.text || outputTranscription?.finished || message.serverContent?.turnComplete) {
-              this.options.onOutputTranscription?.(outputTranscription?.text || "", Boolean(outputTranscription?.finished || message.serverContent?.turnComplete));
+            const outputTranscription =
+              message.serverContent?.outputTranscription;
+            if (
+              outputTranscription?.text ||
+              outputTranscription?.finished ||
+              message.serverContent?.turnComplete
+            ) {
+              this.options.onOutputTranscription?.(
+                outputTranscription?.text || "",
+                Boolean(
+                  outputTranscription?.finished ||
+                  message.serverContent?.turnComplete,
+                ),
+              );
             }
 
-            const inputTranscription = message.serverContent?.inputTranscription;
-            if (inputTranscription?.text || inputTranscription?.finished || message.serverContent?.turnComplete) {
-              this.options.onInputTranscription?.(inputTranscription?.text || "", Boolean(inputTranscription?.finished || message.serverContent?.turnComplete));
+            const inputTranscription =
+              message.serverContent?.inputTranscription;
+            if (
+              inputTranscription?.text ||
+              inputTranscription?.finished ||
+              message.serverContent?.turnComplete
+            ) {
+              this.options.onInputTranscription?.(
+                inputTranscription?.text || "",
+                Boolean(
+                  inputTranscription?.finished ||
+                  message.serverContent?.turnComplete,
+                ),
+              );
             }
 
             this.options.onMessage?.(message);
@@ -539,7 +626,9 @@ export class GeminiLiveChatSession extends GeminiBaseService {
 
             // Unexpected close — try to reconnect
             if (this.options.autoReconnect !== false && !this.isReconnecting) {
-              geminiLog.warn("Unexpected session close. Attempting reconnection...");
+              geminiLog.warn(
+                "Unexpected session close. Attempting reconnection...",
+              );
               void this.reconnect();
               return;
             }
@@ -551,11 +640,19 @@ export class GeminiLiveChatSession extends GeminiBaseService {
       })
       .then((session) => {
         this.session = session;
-        geminiLog.debug("Live session connected successfully with voice:", voiceName);
+        geminiLog.debug(
+          "Live session connected successfully with voice:",
+          voiceName,
+        );
         return session;
       })
       .catch((error) => {
-        geminiLog.error("Failed to connect live session with voice:", voiceName, "Error:", error);
+        geminiLog.error(
+          "Failed to connect live session with voice:",
+          voiceName,
+          "Error:",
+          error,
+        );
         throw error;
       });
 
@@ -581,7 +678,11 @@ export class GeminiLiveChatSession extends GeminiBaseService {
         float32Data[i] = int16Data[i] / 0x7fff;
       }
 
-      const audioBuffer = this.audioContext.createBuffer(1, float32Data.length, 24000);
+      const audioBuffer = this.audioContext.createBuffer(
+        1,
+        float32Data.length,
+        24000,
+      );
       audioBuffer.getChannelData(0).set(float32Data);
 
       const source = this.audioContext.createBufferSource();
@@ -599,12 +700,14 @@ export class GeminiLiveChatSession extends GeminiBaseService {
       this.scheduledAudioSources.push(source);
 
       source.onended = () => {
-        this.scheduledAudioSources = this.scheduledAudioSources.filter((s) => s !== source);
+        this.scheduledAudioSources = this.scheduledAudioSources.filter(
+          (s) => s !== source,
+        );
       };
     }
   }
 
-  private stopStreaming(options: { suppressOnEnd?: boolean; } = {}) {
+  private stopStreaming(options: { suppressOnEnd?: boolean } = {}) {
     if (this.isStopping) return;
     this.isStopping = true;
 
