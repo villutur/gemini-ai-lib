@@ -3,13 +3,27 @@ import type { Content, GenerateContentConfig, Part } from "@google/genai";
 import { GeminiBaseService, type GeminiServiceOptions } from "./base.js";
 import type { TextGenerationModel } from "./text.js";
 
+/**
+ * Valid roles for a Gemini chat message.
+ */
 export type GeminiTextChatMessageRole = "user" | "model";
 
+/**
+ * A simplified representation of a chat message.
+ */
 export interface GeminiTextChatMessage {
+  /** The sender's role ('user' or 'model'). */
   role: GeminiTextChatMessageRole;
+  /** The text content of the message. */
   text: string;
 }
 
+/**
+ * Maps a list of simplified message objects to the standard @google/genai Content format.
+ *
+ * @param messages The simplified message history to map.
+ * @returns An array of `Content` objects suitable for the Google SDK.
+ */
 export function createGeminiTextChatHistory(messages: GeminiTextChatMessage[]): Content[] {
   return messages.map((message) => ({
     role: message.role,

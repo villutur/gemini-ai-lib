@@ -28,6 +28,11 @@ workspace.
   sinks into Gemini request flows
 - `GeminiAudioService`, `GeminiImageService`, and `GeminiLiveService` for the
   richer media and live surfaces already explored in the workspace
+- `GEMINI_IMAGE_MODELS`: shared allowlist covering Gemini image models plus
+  `imagen-4.0-generate-001`
+- model-aware image handling that keeps Gemini image-model requests on their
+  native output path while still allowing explicit output format control for
+  Imagen where the API supports it
 
 ## Installation
 
@@ -143,6 +148,46 @@ const telemetry = normalizeGeminiResponseMetadata(result, {
   startedAt: new Date().toISOString(),
   startedMs: Date.now(),
 });
+```
+
+Image-capable apps can also keep their own policy layer while reusing the
+shared image service and model list.
+
+For Gemini image models, the Gemini API returns the model's native image
+format. Do not assume `outputMimeType` is supported there. The library keeps
+that behavior model-aware and only forwards explicit output-format controls to
+Imagen-style routes where they are actually supported.
+
+```ts
+import {
+  GEMINI_IMAGE_MODELS,
+  GeminiImageService,
+} from "gemini-ai-lib";
+
+const imageService = new GeminiImageService({
+  apiKey: process.env.GEMINI_API_KEY,
+});
+
+const result = await imageService.generateImage(
+  "Create a clean workspace logo with bold geometry.",
+  {
+    model: "gemini-3.1-flash-image-preview",
+    aspectRatio: "1:1",
+  },
+);
+```
+
+If you need explicit output-format control, use an Imagen-capable model:
+
+```ts
+const result = await imageService.generateImage(
+  "Create a clean workspace logo with bold geometry.",
+  {
+    model: "imagen-4.0-generate-001",
+    aspectRatio: "1:1",
+    outputMimeType: "image/png",
+  },
+);
 ```
 
 ## Environment Guidance

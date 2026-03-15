@@ -9,7 +9,29 @@ import { geminiLog } from "./logger.js";
 export type GeminiImageModel =
   | "gemini-2.5-flash-image"
   | "gemini-3-pro-image-preview"
-  | "gemini-3.1-flash-image-preview";
+  | "gemini-3.1-flash-image-preview"
+  | "imagen-4.0-generate-001";
+
+/**
+ * List of available Gemini image models for easy selection.
+ */
+export const GEMINI_IMAGE_MODELS = [
+  "gemini-2.5-flash-image",
+  "gemini-3.1-flash-image-preview",
+  "gemini-3-pro-image-preview",
+  "imagen-4.0-generate-001",
+] as const satisfies readonly GeminiImageModel[];
+
+/**
+ * Helper to check if a model is an Imagen model.
+ * Imagen models use a different API (generateImages) compared to standard Gemini models (generateContent).
+ *
+ * @param model The model ID to check.
+ * @returns True if it's an Imagen model.
+ */
+export function isImagenImageModel(model: GeminiImageModel) {
+  return model === "imagen-4.0-generate-001";
+}
 
 /** Array of supported aspect ratios for Gemini flash image */
 export const FLASH_IMAGE_ASPECT_RATIOS = [
@@ -54,9 +76,9 @@ export interface GenerateImageOptions {
   numberOfImages?: number;
 
   // Output format handling
-  /** The desired MIME type of the returned image. */
+  /** The desired MIME type of the returned image. In practice this is Imagen-only. */
   outputMimeType?: "image/png" | "image/jpeg" | "image/webp" | "image/heic";
-  /** If supported by the format (like jpeg/webp), the quality setting (1-100 or 0.0-1.0 depending on SDK interpretation). */
+  /** Compression control for supported image outputs. In practice this is Imagen-only. */
   compressionQuality?: number;
 
   // Modality & text handling
@@ -92,6 +114,35 @@ export class GeminiImageService extends GeminiBaseService {
    */
   public async generateImage(prompt: string, options?: GenerateImageOptions): Promise<GenerateImageResult> {
     const model = options?.model || "gemini-2.5-flash-image";
+
+    if (isImagenImageModel(model)) {
+      const response = await this.ai.models.generateImages({
+        model,
+        prompt,
+        config: {
+          numberOfImages: options?.numberOfImages,
+          aspectRatio: options?.aspectRatio,
+          imageSize: options?.imageSize,
+          personGeneration: options?.personGeneration as any,
+          outputMimeType: options?.outputMimeType,
+          outputCompressionQuality: options?.compressionQuality,
+        },
+      });
+
+      const generatedImage = response.generatedImages?.[0];
+      const imageBytes = generatedImage?.image?.imageBytes;
+      const mimeType = generatedImage?.image?.mimeType || options?.outputMimeType || "image/png";
+
+      if (!imageBytes) {
+        const blockReason = generatedImage?.raiFilteredReason || "No image returned from Imagen";
+        throw new Error(`Generation blocked: ${String(blockReason)}`);
+      }
+
+      return {
+        base64Image: `data:${mimeType};base64,${imageBytes}`,
+      };
+    }
+
     const parts: Part[] = [];
 
     // Add prompt
@@ -114,11 +165,11 @@ export class GeminiImageService extends GeminiBaseService {
       imageConfig: {
         aspectRatio: options?.aspectRatio,
         imageSize: options?.imageSize,
-        personGeneration: options?.personGeneration,
-        outputMimeType: options?.outputMimeType,
-        compressionQuality: options?.compressionQuality,
-        numberOfImages: options?.numberOfImages,
-      } as any, // Cast to any to support new flash image parameters not yet fully typed
+        personGeneration:
+          options?.personGeneration === "DONT_ALLOW"
+            ? "ALLOW_NONE"
+            : options?.personGeneration,
+      },
     };
 
     const response = await this.ai.models.generateContent({

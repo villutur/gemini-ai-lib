@@ -7,6 +7,9 @@ import type { Part } from "@google/genai";
 export class GeminiAttachmentHelper {
   /**
    * Convert a raw File object into a base64 encoded string.
+   *
+   * @param file The File object to convert.
+   * @returns A base64 encoded string of the file content.
    */
   public static async fileToBase64(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
@@ -28,6 +31,9 @@ export class GeminiAttachmentHelper {
   /**
    * Create an inline data Part from a File object.
    * Useful for passing images or documents from the browser directly to the SDK.
+   *
+   * @param file The File object to attach.
+   * @returns A Gemini SDK `Part` object containing the file data.
    */
   public static async CreateFromFile(file: File): Promise<Part> {
     const base64Data = await this.fileToBase64(file);
@@ -41,6 +47,10 @@ export class GeminiAttachmentHelper {
 
   /**
    * Create an inline data Part from a Buffer (useful in Node.js / Server environments).
+   *
+   * @param buffer The Buffer containing the data.
+   * @param mimeType The MIME type of the content.
+   * @returns A Gemini SDK `Part` object containing the buffer data.
    */
   public static CreateFromBuffer(buffer: Buffer, mimeType: string): Part {
     return {
@@ -53,6 +63,10 @@ export class GeminiAttachmentHelper {
 
   /**
    * Create an inline data Part from a base64 string.
+   *
+   * @param base64 The base64 encoded string.
+   * @param mimeType The MIME type of the content.
+   * @returns A Gemini SDK `Part` object containing the base64 data.
    */
   public static CreateFromBase64(base64: string, mimeType: string): Part {
     return {

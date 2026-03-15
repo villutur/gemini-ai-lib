@@ -54,11 +54,18 @@ export abstract class GeminiBaseService {
 
   /**
    * Helper to get the underlying configured client.
+   *
+   * @returns The Google Gemini client instance.
    */
   public getClient(): GoogleGenAI {
     return this.ai;
   }
 
+  /**
+   * Emits a structured log event using the configured logger.
+   *
+   * @param event The structured log event to emit.
+   */
   protected async log(event: StructuredLogEvent) {
     await emitStructuredLog(this.logger, event);
   }

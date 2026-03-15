@@ -194,6 +194,13 @@ export function createGeminiThinkingConfigForModel(
   return Object.keys(config).length > 0 ? config : undefined;
 }
 
+/**
+ * Normalizes a raw Gemini SDK response into a consistent metadata structure.
+ * Extracts usage statistics, model version, and finish reasons.
+ *
+ * @param response The raw response from the Gemini SDK.
+ * @returns A normalized metadata object.
+ */
 export function normalizeGeminiResponseMetadata(
   response: GenerateContentResponse | undefined | null,
 ): GeminiNormalizedResponseMetadata {

@@ -301,6 +301,12 @@ export class GeminiLiveChatSession extends GeminiBaseService {
     });
   }
 
+  /**
+   * Builds the tools array for the model configuration.
+   * Includes Google Search, custom function declarations, and default service tools.
+   *
+   * @returns An array of Tool objects.
+   */
   private buildModelTools() {
     const tools: any[] = [];
 
@@ -328,6 +334,12 @@ export class GeminiLiveChatSession extends GeminiBaseService {
     return tools;
   }
 
+  /**
+   * Constructs the full system instruction string.
+   * Combines base instructions with dynamic tool-specific instructions.
+   *
+   * @returns The complete system instruction string.
+   */
   private buildSystemInstruction() {
     const base = this.options.systemInstruction || "You are a helpful AI assistant.";
 
@@ -347,6 +359,12 @@ export class GeminiLiveChatSession extends GeminiBaseService {
     return `${base.trim()}\n\nTool Instructions:\n${toolInstructions}`.trim();
   }
 
+  /**
+   * Processes incoming tool calls from the Gemini server.
+   * Dispatches calls to appropriate handlers and returns the results to the session.
+   *
+   * @param message The server message containing tool calls.
+   */
   private async handleToolCalls(message: LiveServerMessage) {
     if (!this.session || !message.toolCall?.functionCalls?.length) return;
 
@@ -585,6 +603,13 @@ export class GeminiLiveChatSession extends GeminiBaseService {
     return liveSessionPromise;
   }
 
+  /**
+   * Processes binary audio output from the model and schedules it for playback
+   * using the Web Audio API (AudioContext). Handles Int16 to Float32 conversion
+   * and precise scheduling to avoid jitter.
+   *
+   * @param message The server message containing audio data.
+   */
   private handleAudioOutput(message: LiveServerMessage) {
     if (!this.audioContext || this.audioContext.state === "closed") return;
 
@@ -627,6 +652,11 @@ export class GeminiLiveChatSession extends GeminiBaseService {
     }
   }
 
+  /**
+   * Internal helper to tear down all audio and network resources.
+   *
+   * @param options Teardown options (e.g., whether to suppress the onEnd callback).
+   */
   private stopStreaming(options: { suppressOnEnd?: boolean } = {}) {
     if (this.isStopping) return;
     this.isStopping = true;

@@ -19,7 +19,13 @@ export interface StructuredLogEvent {
   metadata?: Record<string, unknown>;
 }
 
+/**
+ * Unified interface for handling structured log events across different sinks.
+ */
 export interface LoggerAdapter {
+  /**
+   * Dispatches a structured log event to the underlying sink (e.g., console, database, or API).
+   */
   log: (event: StructuredLogEvent) => void | Promise<void>;
 }
 
@@ -68,6 +74,12 @@ export function createConsoleLoggerAdapter(): LoggerAdapter {
   };
 }
 
+/**
+ * Emits a structured log event if a logger adapter is provided.
+ *
+ * @param logger The logger adapter instance or undefined.
+ * @param event The structured log event to emit.
+ */
 export async function emitStructuredLog(logger: LoggerAdapter | undefined, event: StructuredLogEvent) {
   if (!logger) {
     return;

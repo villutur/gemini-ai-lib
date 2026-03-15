@@ -39,6 +39,10 @@ workspace.
 - Keep thinking-profile mapping and raw Gemini response normalization generic
   here, but leave app-owned policy such as profile availability, allowlists,
   telemetry storage, and UI labels to the consuming app.
+- Keep image-generation request shaping model-aware. Gemini image-model calls
+  and Imagen calls do not support the same config surface, so do not blindly
+  forward fields such as `outputMimeType` or compression settings to every
+  model path.
 - Keep structured logger contracts and lifecycle emission generic here, but let
   consuming apps own the actual sink, storage, retention, and log-history UI.
 - If multiple apps need the same Gemini-history shaping or chat-session helper,
