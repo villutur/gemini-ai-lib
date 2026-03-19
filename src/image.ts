@@ -96,6 +96,8 @@ export interface GenerateImageOptions {
 export interface GenerateImageResult {
   /** The generated image formatted as a Base64 Data URI string (e.g., data:image/png;base64,...). */
   base64Image?: string;
+  /** All generated images formatted as Base64 Data URI strings. */
+  base64Images?: string[];
   /** Any descriptive or structured text returned alongside the image (multimodal models only). */
   text?: string;
 }
@@ -112,10 +114,38 @@ export class GeminiImageService extends GeminiBaseService {
    * @param options Extensive configuration covering model, size, aspect ratio, and multimodal responses.
    * @returns A Promise resolving to a GenerateImageResult containing the Data URI and/or descriptive text.
    */
-  public async generateImage(prompt: string, options?: GenerateImageOptions): Promise<GenerateImageResult> {
+  public async generateImageFromPrompt(prompt: string, options?: GenerateImageOptions): Promise<GenerateImageResult> {
+    const parts: Part[] = [{ text: prompt }];
+
+    // Add reference image if provided (legacy helper path)
+    if (options?.existingImageUrl && options.existingImageUrl.startsWith("data:image")) {
+      const match = options.existingImageUrl.match(/^data:(image\/[^;]+);base64,(.+)$/);
+      if (match) {
+        parts.push(GeminiAttachmentHelper.CreateFromBase64(match[2], match[1]));
+      }
+    }
+
+    return this.generateImage(parts, options);
+  }
+
+  /**
+   * Generates an image (and optionally text) based on multimodal parts.
+   * Supports complex inputs including text prompts and multiple reference images.
+   *
+   * @param parts The array of input parts (text, inlineData, etc.).
+   * @param options Extensive configuration covering model, size, aspect ratio, and multimodal responses.
+   * @returns A Promise resolving to a GenerateImageResult.
+   */
+  public async generateImage(parts: Part[], options?: GenerateImageOptions): Promise<GenerateImageResult> {
     const model = options?.model || "gemini-2.5-flash-image";
 
     if (isImagenImageModel(model)) {
+      // Imagen models only support a single text prompt
+      const prompt = parts
+        .map((p) => p.text)
+        .filter(Boolean)
+        .join(" ");
+
       const response = await this.ai.models.generateImages({
         model,
         prompt,
@@ -129,31 +159,23 @@ export class GeminiImageService extends GeminiBaseService {
         },
       });
 
-      const generatedImage = response.generatedImages?.[0];
-      const imageBytes = generatedImage?.image?.imageBytes;
-      const mimeType = generatedImage?.image?.mimeType || options?.outputMimeType || "image/png";
+      const images: string[] = (response.generatedImages || [])
+        .map((gi) => {
+          const bytes = gi.image?.imageBytes;
+          const mime = gi.image?.mimeType || options?.outputMimeType || "image/png";
+          return bytes ? `data:${mime};base64,${bytes}` : null;
+        })
+        .filter((img): img is string => !!img);
 
-      if (!imageBytes) {
-        const blockReason = generatedImage?.raiFilteredReason || "No image returned from Imagen";
+      if (images.length === 0) {
+        const blockReason = response.generatedImages?.[0]?.raiFilteredReason || "No images returned from Imagen";
         throw new Error(`Generation blocked: ${String(blockReason)}`);
       }
 
       return {
-        base64Image: `data:${mimeType};base64,${imageBytes}`,
+        base64Image: images[0],
+        base64Images: images,
       };
-    }
-
-    const parts: Part[] = [];
-
-    // Add prompt
-    parts.push({ text: prompt });
-
-    // Add reference image if provided
-    if (options?.existingImageUrl && options.existingImageUrl.startsWith("data:image")) {
-      const match = options.existingImageUrl.match(/^data:(image\/[^;]+);base64,(.+)$/);
-      if (match) {
-        parts.push(GeminiAttachmentHelper.CreateFromBase64(match[2], match[1]));
-      }
     }
 
     const config: GenerateContentConfig = {
@@ -165,10 +187,7 @@ export class GeminiImageService extends GeminiBaseService {
       imageConfig: {
         aspectRatio: options?.aspectRatio,
         imageSize: options?.imageSize,
-        personGeneration:
-          options?.personGeneration === "DONT_ALLOW"
-            ? "ALLOW_NONE"
-            : options?.personGeneration,
+        personGeneration: options?.personGeneration === "DONT_ALLOW" ? "ALLOW_NONE" : options?.personGeneration,
       },
     };
 
@@ -187,18 +206,20 @@ export class GeminiImageService extends GeminiBaseService {
       throw new Error(blockReason ? `Generation blocked: ${String(blockReason)}` : "No image returned from Gemini");
     }
 
-    const result: GenerateImageResult = {
-      text: response.text,
-    };
-
-    // Extract base64 image if present
+    const images: string[] = [];
+    // Extract base64 images if present
     for (const part of candidate.content.parts) {
       if (part.inlineData?.data) {
         const mimeType = part.inlineData.mimeType || "image/png";
-        result.base64Image = `data:${mimeType};base64,${part.inlineData.data}`;
-        break; // Only picking the first image for now
+        images.push(`data:${mimeType};base64,${part.inlineData.data}`);
       }
     }
+
+    const result: GenerateImageResult = {
+      text: response.text,
+      base64Image: images[0],
+      base64Images: images.length > 0 ? images : undefined,
+    };
 
     if (!result.base64Image && !result.text) {
       throw new Error("No image data or text in Gemini response");

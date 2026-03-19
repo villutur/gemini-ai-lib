@@ -3,6 +3,9 @@
 Shared TypeScript wrappers around the Gemini SDK for use across the `vt`
 workspace.
 
+Within the workspace, the actively developed repositories are `vt-playground`,
+`vt-design-system`, `vt-asset-studio`, and `gemini-ai-lib`.
+
 ## Purpose
 
 - Keep reusable Gemini SDK wiring out of individual apps
@@ -168,7 +171,7 @@ const imageService = new GeminiImageService({
   apiKey: process.env.GEMINI_API_KEY,
 });
 
-const result = await imageService.generateImage(
+const result = await imageService.generateImageFromPrompt(
   "Create a clean workspace logo with bold geometry.",
   {
     model: "gemini-3.1-flash-image-preview",
@@ -180,7 +183,7 @@ const result = await imageService.generateImage(
 If you need explicit output-format control, use an Imagen-capable model:
 
 ```ts
-const result = await imageService.generateImage(
+const result = await imageService.generateImageFromPrompt(
   "Create a clean workspace logo with bold geometry.",
   {
     model: "imagen-4.0-generate-001",

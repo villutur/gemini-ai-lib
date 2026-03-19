@@ -26,6 +26,15 @@ workspace.
 
 ## Working Rules
 
+- The actively developed repositories in this workspace are `vt-playground`,
+  `vt-design-system`, `vt-asset-studio`, and `gemini-ai-lib`.
+- Do not use `vt-asset-studio-old` as a reference source unless the user
+  explicitly asks. Never write to it.
+- `studio-spark` may be read for inspiration when useful, but do not copy code
+  directly from it unless the user explicitly asks. Never write to it.
+- `ai-callcenter-simulator` is a selective consumer/reference repo and should
+  only be edited when a shared library change requires corresponding consumer
+  updates.
 - Prefer server-side Gemini access by default. `GEMINI_API_KEY` is the standard
   path for app integrations.
 - Treat `NEXT_PUBLIC_GEMINI_API_KEY` as an explicit browser-oriented fallback,

@@ -1,0 +1,15 @@
+# Cursor AI Instructions
+
+**Primary instructions are in `AGENTS.md` in this repository.**
+
+This file exists because Cursor AI looks for .cursorrules by default.
+
+## Cursor-Specific Instructions
+- Follow all rules in AGENTS.md
+- This is a shared library - keep it generic and reusable
+- Pay attention to TypeScript types and interfaces
+- Keep API surfaces clean and well-documented
+- Support both browser and server-side usage
+- Test thoroughly before publishing
+
+See AGENTS.md for complete instructions and workspace rules.
