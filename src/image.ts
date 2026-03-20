@@ -227,4 +227,64 @@ export class GeminiImageService extends GeminiBaseService {
 
     return result;
   }
+
+  /**
+   * Generates an SVG image string based on a text prompt using a Gemini text model.
+   * Can optionally take one or more reference SVGs to guide the generation.
+   *
+   * @param prompt The descriptive text prompt for the desired SVG.
+   * @param options Configuration options including the model and reference SVG strings.
+   * @returns A Promise resolving to a string containing the generated SVG markup.
+   */
+  public async generateSvgFromPrompt(
+    prompt: string,
+    options?: { model?: string; references?: string[] },
+  ): Promise<string> {
+    const parts: Part[] = [];
+
+    if (options?.references && options.references.length > 0) {
+      parts.push({ text: "Use the following SVG(s) as reference for style, structure, or elements:\n\n" });
+      options.references.forEach((ref, index) => {
+        parts.push({ text: `Reference SVG ${index + 1}:\n${ref}\n\n` });
+      });
+    }
+
+    parts.push({ text: `Request: ${prompt}` });
+
+    return this.generateSvg(parts, options);
+  }
+
+  /**
+   * Generates an SVG image string based on multimodal parts.
+   *
+   * @param parts The array of input parts (text, inlineData, etc.).
+   * @param options Configuration options including the model.
+   * @returns A Promise resolving to a string containing the generated SVG markup.
+   */
+  public async generateSvg(
+    parts: Part[],
+    options?: { model?: string },
+  ): Promise<string> {
+    const model = options?.model || "gemini-3.1-flash-lite-preview";
+    const systemInstruction = `You are an expert SVG designer. Generate a highly detailed, clean, and scalable SVG image based on the request.
+Do NOT wrap the response in markdown code blocks. Return ONLY the raw <svg>...</svg> string.
+Ensure the SVG uses a proper viewBox and modern, attractive styling.`;
+
+    const response = await this.ai.models.generateContent({
+      model,
+      contents: [{ role: "user", parts }],
+      config: {
+        systemInstruction,
+        temperature: 0.7,
+      },
+    });
+
+    let svgText = response.text || "";
+    // Clean up any markdown formatting just in case the model ignored instructions
+    svgText = svgText.replace(/^```xml\s*/i, "");
+    svgText = svgText.replace(/^```svg\s*/i, "");
+    svgText = svgText.replace(/^```\s*/, "");
+    svgText = svgText.replace(/```\s*$/, "");
+    return svgText.trim();
+  }
 }
