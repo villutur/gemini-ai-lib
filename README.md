@@ -31,6 +31,8 @@ Within the workspace, the actively developed repositories are `vt-playground`,
   sinks into Gemini request flows
 - `GeminiAudioService`, `GeminiImageService`, and `GeminiLiveService` for the
   richer media and live surfaces already explored in the workspace
+- `GEMINI_TEXT_MODELS`: shared text-model list for consumer model pickers
+- `GEMINI_TEXT_MODEL_DISPLAY_NAMES`: user-facing labels for known text models
 - `GEMINI_IMAGE_MODELS`: shared allowlist covering Gemini image models plus
   `imagen-4.0-generate-001`
 - model-aware image handling that keeps Gemini image-model requests on their
@@ -151,6 +153,31 @@ const telemetry = normalizeGeminiResponseMetadata(result, {
   startedAt: new Date().toISOString(),
   startedMs: Date.now(),
 });
+```
+
+Consumers can also render text-model selectors directly from shared exports:
+
+```ts
+import {
+  GEMINI_TEXT_MODELS,
+  GEMINI_TEXT_MODEL_DISPLAY_NAMES,
+} from "gemini-ai-lib";
+
+const options = GEMINI_TEXT_MODELS.map((model) => ({
+  value: model,
+  label: GEMINI_TEXT_MODEL_DISPLAY_NAMES[model],
+}));
+```
+
+For lightweight UI/model-picker usage without importing runtime services, you
+can also import model catalogs directly from the subpath entry:
+
+```ts
+import {
+  GEMINI_TEXT_MODELS,
+  GEMINI_IMAGE_MODELS,
+  getTextModelDisplayName,
+} from "gemini-ai-lib/model-catalogs";
 ```
 
 Image-capable apps can also keep their own policy layer while reusing the

@@ -2,25 +2,23 @@ import type { GenerateContentConfig, Part, Schema } from "@google/genai";
 import { GeminiBaseService } from "./base.js";
 import { GeminiAttachmentHelper } from "./helpers.js";
 import { geminiLog } from "./logger.js";
+import {
+  GEMINI_IMAGE_MODELS,
+  GEMINI_IMAGE_MODEL_DISPLAY_NAMES,
+  getImageModelDisplayName,
+  type KnownImageGenerationModel,
+} from "./model-catalogs.js";
 
 /**
  * Supported Gemini models capable of image generation.
  */
 export type GeminiImageModel =
-  | "gemini-2.5-flash-image"
-  | "gemini-3-pro-image-preview"
-  | "gemini-3.1-flash-image-preview"
-  | "imagen-4.0-generate-001";
+  | KnownImageGenerationModel;
 
 /**
- * List of available Gemini image models for easy selection.
+ * Re-exported image-model catalogs and labels for convenience.
  */
-export const GEMINI_IMAGE_MODELS = [
-  "gemini-2.5-flash-image",
-  "gemini-3.1-flash-image-preview",
-  "gemini-3-pro-image-preview",
-  "imagen-4.0-generate-001",
-] as const satisfies readonly GeminiImageModel[];
+export { GEMINI_IMAGE_MODELS, GEMINI_IMAGE_MODEL_DISPLAY_NAMES, getImageModelDisplayName };
 
 /**
  * Helper to check if a model is an Imagen model.

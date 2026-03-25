@@ -1,6 +1,18 @@
 import { GenerateContentResponse } from "@google/genai";
 import type { GenerateContentConfig, Part } from "@google/genai";
 import { GeminiBaseService } from "./base.js";
+import {
+  GEMINI_TEXT_MODELS,
+  GEMINI_TEXT_MODEL_DISPLAY_NAMES,
+  getTextModelDisplayName,
+  type KnownTextGenerationModel,
+} from "./model-catalogs.js";
+
+/**
+ * Re-exported text-model catalogs and labels for convenience.
+ */
+export { GEMINI_TEXT_MODELS, GEMINI_TEXT_MODEL_DISPLAY_NAMES, getTextModelDisplayName };
+export type { KnownTextGenerationModel };
 
 /**
  * Supported models for text generation tasks.
@@ -9,12 +21,7 @@ import { GeminiBaseService } from "./base.js";
  * when needed.
  */
 export type TextGenerationModel =
-  | "gemini-2.5-flash-lite"
-  | "gemini-2.5-flash"
-  | "gemini-2.5-pro"
-  | "gemini-3-flash-preview"
-  | "gemini-3.1-flash-lite-preview"
-  | "gemini-3.1-pro-preview"
+  | KnownTextGenerationModel
   | string;
 
 /**

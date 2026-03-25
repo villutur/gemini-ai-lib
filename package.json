@@ -12,6 +12,12 @@
       "import": "./dist/index.js",
       "require": "./dist/index.cjs",
       "default": "./dist/index.js"
+    },
+    "./model-catalogs": {
+      "types": "./dist/model-catalogs.d.ts",
+      "import": "./dist/model-catalogs.js",
+      "require": "./dist/model-catalogs.cjs",
+      "default": "./dist/model-catalogs.js"
     }
   },
   "files": [
