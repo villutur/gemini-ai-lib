@@ -8,13 +8,38 @@ import process from "node:process";
 const cwd = process.cwd();
 const packageJsonPath = path.join(cwd, "package.json");
 const lockfilePath = path.join(cwd, "pnpm-lock.yaml");
+const isWindows = process.platform === "win32";
+
+function resolveCommand(command) {
+  if (!isWindows) {
+    return command;
+  }
+
+  if (command === "pnpm") {
+    return "pnpm.cmd";
+  }
+
+  if (command === "npm") {
+    return "npm.cmd";
+  }
+
+  if (command === "npx") {
+    return "npx.cmd";
+  }
+
+  return command;
+}
 
 function run(command, args, options = {}) {
-  return execFileSync(command, args, {
+  return execFileSync(resolveCommand(command), args, {
     cwd,
     encoding: "utf8",
     stdio: options.stdio ?? "pipe",
   }).trim();
+}
+
+function runInherit(command, args) {
+  execFileSync(resolveCommand(command), args, { cwd, stdio: "inherit" });
 }
 
 function fail(message) {
@@ -147,9 +172,9 @@ function ensureRepoIsSafe() {
   }
 
   info("Running safety checks: pnpm typecheck, pnpm build, npm pack --dry-run");
-  execFileSync("pnpm", ["typecheck"], { cwd, stdio: "inherit" });
-  execFileSync("pnpm", ["build"], { cwd, stdio: "inherit" });
-  execFileSync("npm", ["pack", "--dry-run"], { cwd, stdio: "inherit" });
+  runInherit("pnpm", ["typecheck"]);
+  runInherit("pnpm", ["build"]);
+  runInherit("npm", ["pack", "--dry-run"]);
 }
 
 function readPackageJson() {
@@ -184,7 +209,7 @@ function stageVersionFiles() {
     }
   }
 
-  execFileSync("git", ["add", ...filesToAdd], { cwd, stdio: "inherit" });
+  runInherit("git", ["add", ...filesToAdd]);
 }
 
 function main() {
@@ -226,8 +251,8 @@ function main() {
   stageVersionFiles();
 
   const commitMessage = `chore(release): ${tagName}`;
-  execFileSync("git", ["commit", "-m", commitMessage], { cwd, stdio: "inherit" });
-  execFileSync("git", ["tag", "-a", tagName, "-m", tagName], { cwd, stdio: "inherit" });
+  runInherit("git", ["commit", "-m", commitMessage]);
+  runInherit("git", ["tag", "-a", tagName, "-m", tagName]);
 
   console.log(`
 [release:bump] Release bump complete.
