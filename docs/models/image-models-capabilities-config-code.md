@@ -132,5 +132,3 @@ export const formatImageApiPayload = (modelId: string, config: any) => {
 1.  **Thinking Logic:** For `gemini-3.1-flash-image`, set the `thinkingLevel` to `minimal` by default. Only increase it to `high` if the user is doing "Visual Reasoning" (e.g., "Modify the object based on the math equation in the background").
 2.  **Resolution Constraints:** If the user selects `imagen-4.0`, hide the `4K` option, as it currently peaks at `3K` for Ultra.
 3.  **Negative Prompt:** Only show the "Avoid these things..." text area when `imagen-4.0` is selected. Gemini models prefer negative constraints written directly in the main prompt.
-
-Would you like me to refine the React component to include the **Aspect Ratio** visual selector (e.g., clicking on icons for 16:9 vs 1:1)?

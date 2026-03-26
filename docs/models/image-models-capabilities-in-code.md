@@ -138,11 +138,9 @@ export const IMAGE_GENERATION_MODELS: Record<string, ImageModelMetadata> = {
 
 ---
 
-### Implementation Tips for your Dialog:
+### Implementation Tips for your Dialog
 
-1.  **Dynamic Ratios:** Use `capabilities.supportedRatios` to map out your aspect ratio selector. This prevents users from selecting "4:1" for Imagen 4.0, which would result in an API error.
-2.  **Input UI:** Use `capabilities.maxAttachments` to set the limit on your file uploader.
-3.  **Conditional Features:** Only show the "Negative Prompt" text field if `supportsNegativePrompt` is true. Similarly, show a "Thinking Mode" toggle only for the Pro model.
-4.  **Tooltips:** Map `helpHint` to a small info icon next to the model name in your dropdown.
-
-**Would you like me to write a React/Vue component skeleton using this data for the dialog?**
+1. **Dynamic Ratios:** Use `capabilities.supportedRatios` to map out your aspect ratio selector. This prevents users from selecting "4:1" for Imagen 4.0, which would result in an API error.
+2. **Input UI:** Use `capabilities.maxAttachments` to set the limit on your file uploader.
+3. **Conditional Features:** Only show the "Negative Prompt" text field if `supportsNegativePrompt` is true. Similarly, show a "Thinking Mode" toggle only for the Pro model.
+4. **Tooltips:** Map `helpHint` to a small info icon next to the model name in your dropdown.

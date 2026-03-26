@@ -1,4 +1,3 @@
-Here is the same information regarding the current Gemini and Imagen image generation models in English:
 
 ### 1. Gemini 2.5 Flash Image (Nano Banana)
 

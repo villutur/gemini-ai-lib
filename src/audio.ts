@@ -1,4 +1,4 @@
-import type { GenerateContentConfig } from "@google/genai";
+import { Modality, type GenerateContentConfig, type MultiSpeakerVoiceConfig } from "@google/genai";
 import { GeminiBaseService } from "./base.js";
 import { geminiLog } from "./logger.js";
 
@@ -6,10 +6,33 @@ import { geminiLog } from "./logger.js";
  * Options for configuring audio generation (Text-to-Speech).
  */
 export interface GenerateAudioOptions {
-  /** The specific Gemini model to use for TTS. Defaults to 'gemini-2.5-flash-preview-tts'. */
+  /**
+   * Specific Gemini TTS model to use for synthesis.
+   * Defaults to `gemini-2.5-flash-preview-tts`.
+   */
   model?: string;
-  /** The name of the voice to use (e.g., 'Kore', 'Puck'). */
+  /**
+   * Name of the prebuilt voice to use for single-speaker synthesis.
+   * This is ignored when `multiSpeakerVoiceConfig` is provided.
+   */
   voiceName?: string;
+  /**
+   * Optional BCP-47/ISO language code hint for speech synthesis.
+   * Use values such as `en-US` or `fr-FR` when the consumer needs explicit
+   * language control.
+   */
+  languageCode?: string;
+  /**
+   * Requested response modalities for the TTS call.
+   * TTS models are expected to use `AUDIO` output.
+   */
+  responseModalities?: readonly Modality[];
+  /**
+   * Multi-speaker voice mapping used for native dialogue generation.
+   * When provided, this is mutually exclusive with the single-speaker
+   * `voiceName` path in the underlying SDK contract.
+   */
+  multiSpeakerVoiceConfig?: MultiSpeakerVoiceConfig;
 }
 
 /**
@@ -28,21 +51,28 @@ export class GeminiAudioService extends GeminiBaseService {
     const model = options?.model || "gemini-2.5-flash-preview-tts";
     const voiceName = options?.voiceName || "Kore";
     const combinedText = prompt ? `${prompt} ${text}` : text;
+    const responseModalities = options?.responseModalities?.length ? [...options.responseModalities] : [Modality.AUDIO];
 
     const config: GenerateContentConfig = {
-      responseModalities: ["AUDIO"],
-      speechConfig: {
-        voiceConfig: {
-          prebuiltVoiceConfig: { voiceName: voiceName },
-        },
-      },
+      responseModalities,
+      speechConfig: options?.multiSpeakerVoiceConfig
+        ? {
+            languageCode: options.languageCode,
+            multiSpeakerVoiceConfig: options.multiSpeakerVoiceConfig,
+          }
+        : {
+            languageCode: options?.languageCode,
+            voiceConfig: {
+              prebuiltVoiceConfig: { voiceName },
+            },
+          },
     };
 
     try {
       const response = await this.ai.models.generateContent({
-        model: model,
+        model,
         contents: combinedText,
-        config: config,
+        config,
       });
 
       // Handle deeply nested inlineData.data structure securely

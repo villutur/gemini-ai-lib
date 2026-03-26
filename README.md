@@ -26,10 +26,18 @@ workspace.
   buffers into Gemini `Part` objects
 - structured logging contracts and logger adapters for injecting app-owned
   sinks into Gemini request flows
-- `GeminiAudioService`, `GeminiImageService`, and `GeminiLiveChatSession` for
-  richer media and live surfaces
+- `GeminiAudioService`, `GeminiImageService`, `GeminiVideoService`, and
+  `GeminiLiveChatSession` for richer media and live surfaces
 - `GEMINI_TEXT_MODELS`: shared text-model list for consumer model pickers
 - `GEMINI_TEXT_MODEL_DISPLAY_NAMES`: user-facing labels for known text models
+- `GEMINI_AUDIO_MODELS`: shared audio/TTS model list for consumer model
+  pickers
+- `GEMINI_AUDIO_MODEL_DISPLAY_NAMES`: user-facing labels for known audio/TTS
+  models
+- `GEMINI_VIDEO_MODELS`: shared video-generation model list for consumer model
+  pickers
+- `GEMINI_VIDEO_MODEL_DISPLAY_NAMES`: user-facing labels for known video
+  models
 - `GEMINI_IMAGE_MODELS`: shared allowlist covering Gemini image models plus
   `imagen-4.0-generate-001`
 - `GEMINI_LIVE_MODELS`: shared live-model list for real-time voice/video flows
@@ -37,6 +45,10 @@ workspace.
 - `GEMINI_IMAGE_MODEL_CAPABILITIES`: model-aware image limits and supported
   config options for dynamic UIs
 - `GEMINI_TEXT_MODEL_CAPABILITIES`: model-aware text limits and supported
+  config options for dynamic UIs
+- `GEMINI_AUDIO_MODEL_CAPABILITIES`: model-aware audio/TTS limits and
+  supported config options for dynamic UIs
+- `GEMINI_VIDEO_MODEL_CAPABILITIES`: model-aware video limits and supported
   config options for dynamic UIs
 - `GEMINI_LIVE_MODEL_CAPABILITIES`: model-aware live-session limits and
   supported config options for dynamic UIs
@@ -116,7 +128,11 @@ thinking-config and response-metadata helpers without giving up control of
 route contracts or storage.
 
 ```ts
-import { createGeminiThinkingConfigForModel, normalizeGeminiResponseMetadata, GeminiTextService } from "@villutur/gemini-ai-lib";
+import {
+  createGeminiThinkingConfigForModel,
+  normalizeGeminiResponseMetadata,
+  GeminiTextService,
+} from "@villutur/gemini-ai-lib";
 
 const service = new GeminiTextService({
   apiKey: process.env.GEMINI_API_KEY,
@@ -140,6 +156,28 @@ import { GEMINI_TEXT_MODELS, GEMINI_TEXT_MODEL_DISPLAY_NAMES } from "@villutur/g
 const options = GEMINI_TEXT_MODELS.map((model) => ({
   value: model,
   label: GEMINI_TEXT_MODEL_DISPLAY_NAMES[model],
+}));
+```
+
+Audio/TTS model pickers can use the same pattern:
+
+```ts
+import { GEMINI_AUDIO_MODELS, getAudioModelDisplayName } from "@villutur/gemini-ai-lib";
+
+const audioOptions = GEMINI_AUDIO_MODELS.map((model) => ({
+  value: model,
+  label: getAudioModelDisplayName(model),
+}));
+```
+
+Video model pickers can use the same pattern:
+
+```ts
+import { GEMINI_VIDEO_MODELS, getVideoModelDisplayName } from "@villutur/gemini-ai-lib";
+
+const videoOptions = GEMINI_VIDEO_MODELS.map((model) => ({
+  value: model,
+  label: getVideoModelDisplayName(model),
 }));
 ```
 
@@ -172,6 +210,48 @@ const maxReferenceImages = capabilities.attachmentLimits.maxReferenceImages ?? 0
 const remainingAttachmentBudget = Math.max(0, maxReferenceImages - styleMergerAssetCount);
 ```
 
+Audio/TTS consumers can also drive their config controls from model-aware
+capability exports:
+
+```ts
+import { getAudioModelCapabilities, getAudioModelConfigOptions } from "@villutur/gemini-ai-lib";
+
+const audioModel = "gemini-2.5-flash-preview-tts";
+const audioCapabilities = getAudioModelCapabilities(audioModel);
+const audioOptionDescriptors = getAudioModelConfigOptions(audioModel);
+
+const supportsDialogue = audioCapabilities.speakerLimits.supportsMultiSpeaker;
+const maxSpeakers = audioCapabilities.speakerLimits.maxSpeakers ?? 1;
+```
+
+The current `@google/genai` SDK surface exposes `voiceName`,
+`languageCode`, `responseModalities`, and `multiSpeakerVoiceConfig` for TTS
+request shaping. The Gemini docs also mention controls such as speaking rate,
+pitch, and volume gain, but those are not exported here until the SDK exposes
+a stable typed contract for them.
+
+Video consumers can also drive Veo controls from model-aware capability
+exports:
+
+```ts
+import { getVideoModelCapabilities, getVideoModelConfigOptions } from "@villutur/gemini-ai-lib";
+
+const videoModel = "veo-3.1-fast-generate-preview";
+const videoCapabilities = getVideoModelCapabilities(videoModel);
+const videoOptionDescriptors = getVideoModelConfigOptions(videoModel);
+
+const maxReferenceImages = videoCapabilities.attachmentLimits.maxReferenceImages ?? 0;
+const supportsVideoExtension = videoCapabilities.attachmentLimits.supportsVideoInput;
+```
+
+Video generation is long-running and operation-based. The video service
+normalizes operation polling, while downloading generated files remains under
+consumer control through the underlying SDK client.
+
+The official Gemini video docs may describe more knobs over time, but this
+library only exports video config metadata for the stable `@google/genai`
+`1.46.0` contract plus explicitly typed `generateVideos(...)` config fields.
+
 Live-session UIs can use the same capability pattern:
 
 ```ts
@@ -188,8 +268,12 @@ can also import model catalogs directly from the subpath entry:
 ```ts
 import {
   GEMINI_TEXT_MODELS,
+  GEMINI_AUDIO_MODELS,
+  GEMINI_VIDEO_MODELS,
   GEMINI_IMAGE_MODELS,
   GEMINI_LIVE_MODELS,
+  getAudioModelDisplayName,
+  getVideoModelDisplayName,
   getTextModelDisplayName,
   getLiveModelDisplayName,
 } from "@villutur/gemini-ai-lib/model-catalogs";
@@ -199,12 +283,22 @@ Capability metadata is also available from a dedicated subpath entry:
 
 ```ts
 import {
+  GEMINI_AUDIO_MODEL_CAPABILITIES,
+  GEMINI_AUDIO_CONFIG_OPTIONS,
+  GEMINI_VIDEO_MODEL_CAPABILITIES,
+  GEMINI_VIDEO_CONFIG_OPTIONS,
   GEMINI_IMAGE_MODEL_CAPABILITIES,
   GEMINI_IMAGE_CONFIG_OPTIONS,
   GEMINI_LIVE_MODEL_CAPABILITIES,
   GEMINI_LIVE_CONFIG_OPTIONS,
   GEMINI_TEXT_MODEL_CAPABILITIES,
   GEMINI_TEXT_CONFIG_OPTIONS,
+  getAudioModelCapabilities,
+  getAudioModelConfigOptions,
+  getAudioModelSpeakerLimits,
+  getVideoModelAttachmentLimits,
+  getVideoModelCapabilities,
+  getVideoModelConfigOptions,
   getLiveModelCapabilities,
   getLiveModelFeatureFlags,
   getImageModelAttachmentLimits,
@@ -242,6 +336,55 @@ const result = await imageService.generateImageFromPrompt("Create a clean worksp
   aspectRatio: "1:1",
   outputMimeType: "image/png",
 });
+```
+
+Video generation follows a long-running-operation flow:
+
+```ts
+import { GeminiVideoService } from "@villutur/gemini-ai-lib";
+
+const videoService = new GeminiVideoService({
+  apiKey: process.env.GEMINI_API_KEY,
+});
+
+const result = await videoService.generateVideoFromPrompt("A cinematic drone shot over a snowy forest at sunrise.", {
+  model: "veo-3.1-fast-generate-preview",
+  aspectRatio: "16:9",
+  resolution: "1080p",
+  durationSeconds: 8,
+  generateAudio: true,
+});
+
+const firstVideo = result.generatedVideos[0]?.video;
+if (firstVideo) {
+  await videoService.getClient().files.download({
+    file: firstVideo,
+    downloadPath: "./veo-output.mp4",
+  });
+}
+```
+
+If you want to build multimodal request parts yourself, `GeminiAttachmentHelper`
+can convert buffers or files into Gemini `Part` objects:
+
+```ts
+import { readFile } from "node:fs/promises";
+import { GeminiAttachmentHelper, GeminiImageService } from "@villutur/gemini-ai-lib";
+
+const imageBuffer = await readFile("./reference.png");
+const referencePart = GeminiAttachmentHelper.CreateFromBuffer(imageBuffer, "image/png");
+
+const imageService = new GeminiImageService({
+  apiKey: process.env.GEMINI_API_KEY,
+});
+
+const result = await imageService.generateImage(
+  [{ text: "Create a product-shot style render that matches the reference image lighting." }, referencePart],
+  {
+    model: "gemini-3.1-flash-image-preview",
+    aspectRatio: "1:1",
+  },
+);
 ```
 
 ## Environment Guidance

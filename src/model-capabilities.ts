@@ -1,13 +1,24 @@
+import type { GenerateAudioOptions } from "./audio.js";
 import type { GenerateImageOptions, GeminiFlashAspectRatio, GeminiImageSize } from "./image.js";
 import type { LiveChatSessionOptions } from "./live.js";
 import type { GenerateTextOptions } from "./text.js";
+import type {
+  GenerateVideoOptions,
+  GeminiVideoAspectRatio,
+  GeminiVideoDurationSeconds,
+  GeminiVideoResolution,
+} from "./video.js";
 import {
+  GEMINI_AUDIO_MODELS,
   GEMINI_IMAGE_MODELS,
   GEMINI_LIVE_MODELS,
   GEMINI_TEXT_MODELS,
+  GEMINI_VIDEO_MODELS,
+  type KnownAudioGenerationModel,
   type KnownImageGenerationModel,
   type KnownLiveGenerationModel,
   type KnownTextGenerationModel,
+  type KnownVideoGenerationModel,
 } from "./model-catalogs.js";
 import {
   getGeminiThinkingSupportForModel,
@@ -28,7 +39,7 @@ export type GeminiCapabilitySource = "catalog" | "fallback";
 export type GeminiConfigOptionKind = "string" | "number" | "boolean" | "array" | "object";
 
 /**
- * Shared descriptor shape used by image/text config option catalogs.
+ * Shared descriptor shape used by image/text/audio/video/live config option catalogs.
  * Consumers can use this to render generic model configuration controls.
  */
 export interface GeminiConfigOptionDescriptor<TKey extends string = string> {
@@ -102,6 +113,32 @@ export type GeminiTextConfigOptionKey =
   | "responseMimeType"
   | "responseSchema"
   | "thinkingConfig";
+
+/**
+ * Audio/TTS option keys exported for dynamic UI/config generation.
+ * These keys map to `GenerateAudioOptions`.
+ */
+export type GeminiAudioConfigOptionKey =
+  | "voiceName"
+  | "languageCode"
+  | "responseModalities"
+  | "multiSpeakerVoiceConfig";
+
+/**
+ * Video option keys exported for dynamic UI/config generation.
+ * These keys map to `GenerateVideoOptions`.
+ */
+export type GeminiVideoConfigOptionKey =
+  | "aspectRatio"
+  | "resolution"
+  | "durationSeconds"
+  | "fps"
+  | "generateAudio"
+  | "negativePrompt"
+  | "numberOfVideos"
+  | "seed"
+  | "enhancePrompt"
+  | "personGeneration";
 
 /**
  * Live-session option keys exported for dynamic UI/config generation.
@@ -275,6 +312,198 @@ export interface GeminiTextModelCapabilities {
    * Which config keys are intentionally unsupported for this model.
    */
   unsupportedOptions: readonly GeminiTextConfigOptionKey[];
+}
+
+/**
+ * Input constraints for Gemini TTS/audio generation models.
+ */
+export interface GeminiAudioInputLimits {
+  /**
+   * Whether plain text input is supported.
+   */
+  supportsTextInput: boolean;
+  /**
+   * Whether file/image/audio attachments are part of the request contract.
+   */
+  supportsAttachments: boolean;
+  /**
+   * Maximum input context length when known.
+   * Null means unknown and should be treated conservatively by consumers.
+   */
+  maxContextTokens: number | null;
+}
+
+/**
+ * Speaker constraints for Gemini TTS/audio generation models.
+ */
+export interface GeminiAudioSpeakerLimits {
+  /**
+   * Whether the model supports the standard single-speaker voice path.
+   */
+  supportsSingleSpeaker: boolean;
+  /**
+   * Whether the model supports native multi-speaker dialogue.
+   */
+  supportsMultiSpeaker: boolean;
+  /**
+   * Maximum number of speakers supported when known.
+   * Null means unknown.
+   */
+  maxSpeakers: number | null;
+  /**
+   * Required speaker count for the current SDK-backed multi-speaker request
+   * contract when known.
+   */
+  multiSpeakerExactCount: number | null;
+}
+
+/**
+ * Canonical capability payload for audio/TTS generation models.
+ */
+export interface GeminiAudioModelCapabilities {
+  /**
+   * Raw model id requested by the caller.
+   */
+  model: string;
+  /**
+   * True when the model exists in the known audio model catalog.
+   */
+  isKnownModel: boolean;
+  /**
+   * Indicates whether this record comes from catalog data or a fallback.
+   */
+  source: GeminiCapabilitySource;
+  /**
+   * Input-shape limits for the audio request.
+   */
+  inputLimits: GeminiAudioInputLimits;
+  /**
+   * Speaker-count and speaker-mode limits for the audio request.
+   */
+  speakerLimits: GeminiAudioSpeakerLimits;
+  /**
+   * Output modalities this model is expected to emit.
+   */
+  allowedResponseModalities: readonly string[];
+  /**
+   * Which config keys are available for this model.
+   */
+  supportedOptions: readonly GeminiAudioConfigOptionKey[];
+  /**
+   * Which config keys are intentionally unsupported for this model.
+   */
+  unsupportedOptions: readonly GeminiAudioConfigOptionKey[];
+}
+
+/**
+ * Input constraints for Gemini video-generation models.
+ */
+export interface GeminiVideoAttachmentLimits {
+  /**
+   * Whether prompt-only generation is supported.
+   */
+  supportsTextPrompt: boolean;
+  /**
+   * Whether image-to-video generation is supported.
+   */
+  supportsImageInput: boolean;
+  /**
+   * Whether video-extension input is supported.
+   */
+  supportsVideoInput: boolean;
+  /**
+   * Whether reference-image conditioning is supported.
+   */
+  supportsReferenceImages: boolean;
+  /**
+   * Whether a dedicated last-frame input is supported.
+   */
+  supportsLastFrame: boolean;
+  /**
+   * Maximum number of reference images supported when known.
+   * Null means unknown.
+   */
+  maxReferenceImages: number | null;
+}
+
+/**
+ * Output constraints for Gemini video-generation models.
+ */
+export interface GeminiVideoOutputLimits {
+  /**
+   * Whether the model can generate synchronized audio with the video.
+   */
+  supportsAudioOutput: boolean;
+  /**
+   * Minimum number of videos accepted by the request path.
+   */
+  minVideos: number;
+  /**
+   * Maximum number of videos accepted by the request path.
+   */
+  maxVideos: number;
+  /**
+   * Recommended default number of videos when not explicitly set.
+   */
+  defaultVideos: number;
+  /**
+   * Recommended default clip duration in seconds.
+   */
+  defaultDuration: GeminiVideoDurationSeconds | null;
+  /**
+   * Recommended default frame rate.
+   */
+  defaultFps: number | null;
+}
+
+/**
+ * Canonical capability payload for video-generation models.
+ */
+export interface GeminiVideoModelCapabilities {
+  /**
+   * Raw model id requested by the caller.
+   */
+  model: string;
+  /**
+   * True when the model exists in the known video model catalog.
+   */
+  isKnownModel: boolean;
+  /**
+   * Indicates whether this record comes from catalog data or a fallback.
+   */
+  source: GeminiCapabilitySource;
+  /**
+   * Input/source constraints for the video request.
+   */
+  attachmentLimits: GeminiVideoAttachmentLimits;
+  /**
+   * Output constraints for the video request.
+   */
+  outputLimits: GeminiVideoOutputLimits;
+  /**
+   * Which config keys are available for this model.
+   */
+  supportedOptions: readonly GeminiVideoConfigOptionKey[];
+  /**
+   * Which config keys are intentionally unsupported for this model.
+   */
+  unsupportedOptions: readonly GeminiVideoConfigOptionKey[];
+  /**
+   * Allowed aspect ratios for the selected model path.
+   */
+  allowedAspectRatios: readonly string[];
+  /**
+   * Allowed output resolutions for the selected model path.
+   */
+  allowedResolutions: readonly string[];
+  /**
+   * Allowed clip durations for the selected model path.
+   */
+  allowedDurations: readonly number[];
+  /**
+   * Allowed person-generation policy values for the selected model path.
+   */
+  allowedPersonGenerationModes: readonly string[];
 }
 
 /**
@@ -524,6 +753,183 @@ export const GEMINI_TEXT_CONFIG_OPTIONS: Record<
 };
 
 /**
+ * Complete audio/TTS config option catalog.
+ * Consumers can filter this per model with `getAudioModelConfigOptions(...)`.
+ */
+export const GEMINI_AUDIO_CONFIG_OPTIONS: Record<
+  GeminiAudioConfigOptionKey,
+  GeminiConfigOptionDescriptor<GeminiAudioConfigOptionKey>
+> = {
+  /**
+   * Prebuilt voice name used for single-speaker synthesis.
+   */
+  voiceName: {
+    key: "voiceName",
+    label: "Voice name",
+    description: "Selects the prebuilt voice used for single-speaker synthesis.",
+    kind: "string",
+    defaultValue: "Kore",
+  },
+  /**
+   * Language hint passed to the TTS speech configuration.
+   */
+  languageCode: {
+    key: "languageCode",
+    label: "Language code",
+    description: "Supplies an optional language hint such as en-US or fr-FR for speech synthesis.",
+    kind: "string",
+    defaultValue: "en-US",
+  },
+  /**
+   * Requested response modalities for the TTS response.
+   */
+  responseModalities: {
+    key: "responseModalities",
+    label: "Response modalities",
+    description:
+      "Controls the requested response modalities for the TTS call. TTS models are expected to return audio.",
+    kind: "array",
+    allowedValues: ["AUDIO"],
+    defaultValue: ["AUDIO"],
+    note: "The current SDK-backed TTS flow is audio-only. Consumers should treat non-AUDIO values as unsupported.",
+  },
+  /**
+   * Multi-speaker voice mapping for dialogue generation.
+   */
+  multiSpeakerVoiceConfig: {
+    key: "multiSpeakerVoiceConfig",
+    label: "Multi-speaker voice config",
+    description: "Maps prompt speaker names to voices for native multi-speaker dialogue synthesis.",
+    kind: "object",
+    note: "The current @google/genai SDK contract exposes exactly two speaker voice configs for this path.",
+  },
+};
+
+/**
+ * Complete video config option catalog.
+ * Consumers can filter this per model with `getVideoModelConfigOptions(...)`.
+ */
+export const GEMINI_VIDEO_CONFIG_OPTIONS: Record<
+  GeminiVideoConfigOptionKey,
+  GeminiConfigOptionDescriptor<GeminiVideoConfigOptionKey>
+> = {
+  /**
+   * Controls the output video aspect ratio.
+   */
+  aspectRatio: {
+    key: "aspectRatio",
+    label: "Aspect ratio",
+    description: "Controls the output aspect ratio for generated videos.",
+    kind: "string",
+    allowedValues: ["16:9", "9:16"],
+    defaultValue: "16:9",
+  },
+  /**
+   * Controls the output video resolution.
+   */
+  resolution: {
+    key: "resolution",
+    label: "Resolution",
+    description: "Controls the output resolution for generated videos.",
+    kind: "string",
+    allowedValues: ["720p", "1080p", "4k"],
+    defaultValue: "1080p",
+    note: "Current Veo 3.1 paths require 8 seconds for 1080p and 4k generation. Video extension is limited to 720p.",
+  },
+  /**
+   * Controls generated clip duration in seconds.
+   */
+  durationSeconds: {
+    key: "durationSeconds",
+    label: "Duration",
+    description: "Controls generated clip duration in seconds.",
+    kind: "number",
+    min: 4,
+    max: 8,
+    step: 2,
+    defaultValue: 8,
+    note: "Reference-image generation currently requires 8 seconds.",
+  },
+  /**
+   * Controls generated frames per second.
+   */
+  fps: {
+    key: "fps",
+    label: "Frames per second",
+    description: "Controls the target frame rate for generated videos.",
+    kind: "number",
+    min: 1,
+    max: 60,
+    step: 1,
+    defaultValue: 24,
+  },
+  /**
+   * Controls whether the model should generate synchronized audio.
+   */
+  generateAudio: {
+    key: "generateAudio",
+    label: "Generate audio",
+    description: "Controls whether synchronized audio should be generated together with the video.",
+    kind: "boolean",
+    defaultValue: true,
+  },
+  /**
+   * Negative prompt content used to discourage unwanted output.
+   */
+  negativePrompt: {
+    key: "negativePrompt",
+    label: "Negative prompt",
+    description: "Describes visuals or artifacts the model should avoid in the generated video.",
+    kind: "string",
+  },
+  /**
+   * Number of videos requested from the generation path.
+   */
+  numberOfVideos: {
+    key: "numberOfVideos",
+    label: "Number of videos",
+    description: "Controls how many videos are requested in one generation run.",
+    kind: "number",
+    min: 1,
+    max: 1,
+    step: 1,
+    defaultValue: 1,
+  },
+  /**
+   * Fixed random seed used for deterministic reruns when supported.
+   */
+  seed: {
+    key: "seed",
+    label: "Seed",
+    description: "Sets a random seed to make repeated generations more reproducible.",
+    kind: "number",
+    min: 0,
+    step: 1,
+  },
+  /**
+   * Controls whether prompt enhancement should run before generation.
+   */
+  enhancePrompt: {
+    key: "enhancePrompt",
+    label: "Enhance prompt",
+    description: "Enables prompt enhancement before the Veo generation call.",
+    kind: "boolean",
+    defaultValue: true,
+  },
+  /**
+   * Controls whether person videos are allowed for the generation request.
+   */
+  personGeneration: {
+    key: "personGeneration",
+    label: "Person generation policy",
+    description: "Controls people-generation policy where supported by the video model path.",
+    kind: "string",
+    allowedValues: ["allow_adult", "dont_allow"],
+    defaultValue: "allow_adult",
+  },
+};
+
+/**
  * Complete live-session config option catalog.
  * Consumers can filter this per model with `getLiveModelConfigOptions(...)`.
  */
@@ -636,6 +1042,8 @@ export const GEMINI_LIVE_CONFIG_OPTIONS: Record<
 
 const IMAGE_OPTION_KEYS = Object.keys(GEMINI_IMAGE_CONFIG_OPTIONS) as GeminiImageConfigOptionKey[];
 const TEXT_OPTION_KEYS = Object.keys(GEMINI_TEXT_CONFIG_OPTIONS) as GeminiTextConfigOptionKey[];
+const AUDIO_OPTION_KEYS = Object.keys(GEMINI_AUDIO_CONFIG_OPTIONS) as GeminiAudioConfigOptionKey[];
+const VIDEO_OPTION_KEYS = Object.keys(GEMINI_VIDEO_CONFIG_OPTIONS) as GeminiVideoConfigOptionKey[];
 const LIVE_OPTION_KEYS = Object.keys(GEMINI_LIVE_CONFIG_OPTIONS) as GeminiLiveConfigOptionKey[];
 
 const FLASH_IMAGE_ASPECT_RATIOS: readonly GeminiFlashAspectRatio[] = [
@@ -657,6 +1065,11 @@ const FLASH_IMAGE_ASPECT_RATIOS: readonly GeminiFlashAspectRatio[] = [
 
 const IMAGEN_IMAGE_ASPECT_RATIOS = ["1:1", "3:4", "4:3", "9:16", "16:9"] as const;
 const IMAGE_SIZE_TIERS = ["256", "512", "1K", "2K", "4K"] as const satisfies readonly GeminiImageSize[];
+const VIDEO_ASPECT_RATIOS = ["16:9", "9:16"] as const satisfies readonly GeminiVideoAspectRatio[];
+const VIDEO_DURATIONS = [4, 6, 8] as const satisfies readonly GeminiVideoDurationSeconds[];
+const STANDARD_VIDEO_RESOLUTIONS = ["720p", "1080p", "4k"] as const satisfies readonly GeminiVideoResolution[];
+const FAST_VIDEO_RESOLUTIONS = ["720p", "1080p"] as const satisfies readonly GeminiVideoResolution[];
+const VIDEO_PERSON_GENERATION_MODES = ["allow_adult", "dont_allow"] as const;
 
 const COMMON_TEXT_ATTACHMENT_LIMITS: GeminiTextAttachmentLimits = {
   supportsImages: true,
@@ -684,7 +1097,14 @@ const KNOWN_IMAGE_MODEL_CAPABILITIES: Record<KnownImageGenerationModel, GeminiIm
       maxImages: 10,
       defaultImages: 1,
     },
-    supportedOptions: ["aspectRatio", "imageSize", "personGeneration", "responseModalities", "responseMimeType", "responseSchema"],
+    supportedOptions: [
+      "aspectRatio",
+      "imageSize",
+      "personGeneration",
+      "responseModalities",
+      "responseMimeType",
+      "responseSchema",
+    ],
     unsupportedOptions: [],
     allowedAspectRatios: FLASH_IMAGE_ASPECT_RATIOS,
     allowedImageSizes: IMAGE_SIZE_TIERS,
@@ -703,7 +1123,14 @@ const KNOWN_IMAGE_MODEL_CAPABILITIES: Record<KnownImageGenerationModel, GeminiIm
       maxImages: 10,
       defaultImages: 1,
     },
-    supportedOptions: ["aspectRatio", "imageSize", "personGeneration", "responseModalities", "responseMimeType", "responseSchema"],
+    supportedOptions: [
+      "aspectRatio",
+      "imageSize",
+      "personGeneration",
+      "responseModalities",
+      "responseMimeType",
+      "responseSchema",
+    ],
     unsupportedOptions: [],
     allowedAspectRatios: FLASH_IMAGE_ASPECT_RATIOS,
     allowedImageSizes: IMAGE_SIZE_TIERS,
@@ -722,7 +1149,14 @@ const KNOWN_IMAGE_MODEL_CAPABILITIES: Record<KnownImageGenerationModel, GeminiIm
       maxImages: 4,
       defaultImages: 1,
     },
-    supportedOptions: ["aspectRatio", "imageSize", "personGeneration", "responseModalities", "responseMimeType", "responseSchema"],
+    supportedOptions: [
+      "aspectRatio",
+      "imageSize",
+      "personGeneration",
+      "responseModalities",
+      "responseMimeType",
+      "responseSchema",
+    ],
     unsupportedOptions: [],
     allowedAspectRatios: FLASH_IMAGE_ASPECT_RATIOS,
     allowedImageSizes: IMAGE_SIZE_TIERS,
@@ -741,7 +1175,14 @@ const KNOWN_IMAGE_MODEL_CAPABILITIES: Record<KnownImageGenerationModel, GeminiIm
       maxImages: 4,
       defaultImages: 1,
     },
-    supportedOptions: ["aspectRatio", "imageSize", "numberOfImages", "personGeneration", "outputMimeType", "compressionQuality"],
+    supportedOptions: [
+      "aspectRatio",
+      "imageSize",
+      "numberOfImages",
+      "personGeneration",
+      "outputMimeType",
+      "compressionQuality",
+    ],
     unsupportedOptions: [],
     allowedAspectRatios: IMAGEN_IMAGE_ASPECT_RATIOS,
     allowedImageSizes: ["1K", "2K", "4K"],
@@ -831,6 +1272,104 @@ const KNOWN_TEXT_MODEL_CAPABILITIES: Record<KnownTextGenerationModel, GeminiText
   },
 };
 
+const KNOWN_AUDIO_MODEL_CAPABILITIES: Record<KnownAudioGenerationModel, GeminiAudioModelCapabilities> = {
+  "gemini-2.5-flash-preview-tts": {
+    model: "gemini-2.5-flash-preview-tts",
+    isKnownModel: true,
+    source: "catalog",
+    inputLimits: {
+      supportsTextInput: true,
+      supportsAttachments: false,
+      maxContextTokens: 32000,
+    },
+    speakerLimits: {
+      supportsSingleSpeaker: true,
+      supportsMultiSpeaker: true,
+      maxSpeakers: 2,
+      multiSpeakerExactCount: 2,
+    },
+    allowedResponseModalities: ["AUDIO"],
+    supportedOptions: AUDIO_OPTION_KEYS,
+    unsupportedOptions: [],
+  },
+  "gemini-2.5-pro-preview-tts": {
+    model: "gemini-2.5-pro-preview-tts",
+    isKnownModel: true,
+    source: "catalog",
+    inputLimits: {
+      supportsTextInput: true,
+      supportsAttachments: false,
+      maxContextTokens: 32000,
+    },
+    speakerLimits: {
+      supportsSingleSpeaker: true,
+      supportsMultiSpeaker: true,
+      maxSpeakers: 2,
+      multiSpeakerExactCount: 2,
+    },
+    allowedResponseModalities: ["AUDIO"],
+    supportedOptions: AUDIO_OPTION_KEYS,
+    unsupportedOptions: [],
+  },
+};
+
+const KNOWN_VIDEO_MODEL_CAPABILITIES: Record<KnownVideoGenerationModel, GeminiVideoModelCapabilities> = {
+  "veo-3.1-generate-preview": {
+    model: "veo-3.1-generate-preview",
+    isKnownModel: true,
+    source: "catalog",
+    attachmentLimits: {
+      supportsTextPrompt: true,
+      supportsImageInput: true,
+      supportsVideoInput: true,
+      supportsReferenceImages: true,
+      supportsLastFrame: true,
+      maxReferenceImages: 3,
+    },
+    outputLimits: {
+      supportsAudioOutput: true,
+      minVideos: 1,
+      maxVideos: 1,
+      defaultVideos: 1,
+      defaultDuration: 8,
+      defaultFps: 24,
+    },
+    supportedOptions: VIDEO_OPTION_KEYS,
+    unsupportedOptions: [],
+    allowedAspectRatios: VIDEO_ASPECT_RATIOS,
+    allowedResolutions: STANDARD_VIDEO_RESOLUTIONS,
+    allowedDurations: VIDEO_DURATIONS,
+    allowedPersonGenerationModes: VIDEO_PERSON_GENERATION_MODES,
+  },
+  "veo-3.1-fast-generate-preview": {
+    model: "veo-3.1-fast-generate-preview",
+    isKnownModel: true,
+    source: "catalog",
+    attachmentLimits: {
+      supportsTextPrompt: true,
+      supportsImageInput: true,
+      supportsVideoInput: true,
+      supportsReferenceImages: true,
+      supportsLastFrame: true,
+      maxReferenceImages: 3,
+    },
+    outputLimits: {
+      supportsAudioOutput: true,
+      minVideos: 1,
+      maxVideos: 1,
+      defaultVideos: 1,
+      defaultDuration: 8,
+      defaultFps: 24,
+    },
+    supportedOptions: VIDEO_OPTION_KEYS,
+    unsupportedOptions: [],
+    allowedAspectRatios: VIDEO_ASPECT_RATIOS,
+    allowedResolutions: FAST_VIDEO_RESOLUTIONS,
+    allowedDurations: VIDEO_DURATIONS,
+    allowedPersonGenerationModes: VIDEO_PERSON_GENERATION_MODES,
+  },
+};
+
 const LIVE_MODEL_THINKING_SUPPORT =
   getGeminiThinkingSupportForModel("gemini-2.5-flash-native-audio-preview-12-2025") ?? null;
 
@@ -849,8 +1388,10 @@ const KNOWN_LIVE_MODEL_CAPABILITIES: Record<KnownLiveGenerationModel, GeminiLive
       supportsVadConfig: true,
     },
     limits: {
-      minThinkingBudget: LIVE_MODEL_THINKING_SUPPORT?.parameter === "thinkingBudget" ? LIVE_MODEL_THINKING_SUPPORT.minBudget : null,
-      maxThinkingBudget: LIVE_MODEL_THINKING_SUPPORT?.parameter === "thinkingBudget" ? LIVE_MODEL_THINKING_SUPPORT.maxBudget : null,
+      minThinkingBudget:
+        LIVE_MODEL_THINKING_SUPPORT?.parameter === "thinkingBudget" ? LIVE_MODEL_THINKING_SUPPORT.minBudget : null,
+      maxThinkingBudget:
+        LIVE_MODEL_THINKING_SUPPORT?.parameter === "thinkingBudget" ? LIVE_MODEL_THINKING_SUPPORT.maxBudget : null,
     },
     supportedOptions: LIVE_OPTION_KEYS,
     unsupportedOptions: [],
@@ -869,8 +1410,10 @@ const KNOWN_LIVE_MODEL_CAPABILITIES: Record<KnownLiveGenerationModel, GeminiLive
       supportsVadConfig: true,
     },
     limits: {
-      minThinkingBudget: LIVE_MODEL_THINKING_SUPPORT?.parameter === "thinkingBudget" ? LIVE_MODEL_THINKING_SUPPORT.minBudget : null,
-      maxThinkingBudget: LIVE_MODEL_THINKING_SUPPORT?.parameter === "thinkingBudget" ? LIVE_MODEL_THINKING_SUPPORT.maxBudget : null,
+      minThinkingBudget:
+        LIVE_MODEL_THINKING_SUPPORT?.parameter === "thinkingBudget" ? LIVE_MODEL_THINKING_SUPPORT.minBudget : null,
+      maxThinkingBudget:
+        LIVE_MODEL_THINKING_SUPPORT?.parameter === "thinkingBudget" ? LIVE_MODEL_THINKING_SUPPORT.maxBudget : null,
     },
     supportedOptions: LIVE_OPTION_KEYS,
     unsupportedOptions: [],
@@ -891,6 +1434,20 @@ for (const model of GEMINI_TEXT_MODELS) {
   );
 }
 
+for (const model of GEMINI_AUDIO_MODELS) {
+  KNOWN_AUDIO_MODEL_CAPABILITIES[model].unsupportedOptions = toUnsupportedOptions(
+    KNOWN_AUDIO_MODEL_CAPABILITIES[model].supportedOptions,
+    AUDIO_OPTION_KEYS,
+  );
+}
+
+for (const model of GEMINI_VIDEO_MODELS) {
+  KNOWN_VIDEO_MODEL_CAPABILITIES[model].unsupportedOptions = toUnsupportedOptions(
+    KNOWN_VIDEO_MODEL_CAPABILITIES[model].supportedOptions,
+    VIDEO_OPTION_KEYS,
+  );
+}
+
 for (const model of GEMINI_LIVE_MODELS) {
   KNOWN_LIVE_MODEL_CAPABILITIES[model].unsupportedOptions = toUnsupportedOptions(
     KNOWN_LIVE_MODEL_CAPABILITIES[model].supportedOptions,
@@ -901,14 +1458,29 @@ for (const model of GEMINI_LIVE_MODELS) {
 /**
  * Public image-capability catalog keyed by known image model IDs.
  */
-export const GEMINI_IMAGE_MODEL_CAPABILITIES: Readonly<Record<KnownImageGenerationModel, GeminiImageModelCapabilities>> =
-  KNOWN_IMAGE_MODEL_CAPABILITIES;
+export const GEMINI_IMAGE_MODEL_CAPABILITIES: Readonly<
+  Record<KnownImageGenerationModel, GeminiImageModelCapabilities>
+> = KNOWN_IMAGE_MODEL_CAPABILITIES;
 
 /**
  * Public text-capability catalog keyed by known text model IDs.
  */
 export const GEMINI_TEXT_MODEL_CAPABILITIES: Readonly<Record<KnownTextGenerationModel, GeminiTextModelCapabilities>> =
   KNOWN_TEXT_MODEL_CAPABILITIES;
+
+/**
+ * Public audio/TTS capability catalog keyed by known audio model IDs.
+ */
+export const GEMINI_AUDIO_MODEL_CAPABILITIES: Readonly<
+  Record<KnownAudioGenerationModel, GeminiAudioModelCapabilities>
+> = KNOWN_AUDIO_MODEL_CAPABILITIES;
+
+/**
+ * Public video-capability catalog keyed by known video model IDs.
+ */
+export const GEMINI_VIDEO_MODEL_CAPABILITIES: Readonly<
+  Record<KnownVideoGenerationModel, GeminiVideoModelCapabilities>
+> = KNOWN_VIDEO_MODEL_CAPABILITIES;
 
 /**
  * Public live-capability catalog keyed by known live model IDs.
@@ -959,6 +1531,54 @@ const TEXT_FALLBACK_CAPABILITIES: GeminiTextModelCapabilities = {
   unsupportedOptions: [],
 };
 
+const AUDIO_FALLBACK_CAPABILITIES: GeminiAudioModelCapabilities = {
+  model: "unknown",
+  isKnownModel: false,
+  source: "fallback",
+  inputLimits: {
+    supportsTextInput: true,
+    supportsAttachments: false,
+    maxContextTokens: null,
+  },
+  speakerLimits: {
+    supportsSingleSpeaker: true,
+    supportsMultiSpeaker: false,
+    maxSpeakers: null,
+    multiSpeakerExactCount: null,
+  },
+  allowedResponseModalities: ["AUDIO"],
+  supportedOptions: ["voiceName", "languageCode", "responseModalities"],
+  unsupportedOptions: toUnsupportedOptions(["voiceName", "languageCode", "responseModalities"], AUDIO_OPTION_KEYS),
+};
+
+const VIDEO_FALLBACK_CAPABILITIES: GeminiVideoModelCapabilities = {
+  model: "unknown",
+  isKnownModel: false,
+  source: "fallback",
+  attachmentLimits: {
+    supportsTextPrompt: true,
+    supportsImageInput: true,
+    supportsVideoInput: true,
+    supportsReferenceImages: false,
+    supportsLastFrame: false,
+    maxReferenceImages: null,
+  },
+  outputLimits: {
+    supportsAudioOutput: true,
+    minVideos: 1,
+    maxVideos: 1,
+    defaultVideos: 1,
+    defaultDuration: 8,
+    defaultFps: 24,
+  },
+  supportedOptions: VIDEO_OPTION_KEYS,
+  unsupportedOptions: [],
+  allowedAspectRatios: VIDEO_ASPECT_RATIOS,
+  allowedResolutions: FAST_VIDEO_RESOLUTIONS,
+  allowedDurations: VIDEO_DURATIONS,
+  allowedPersonGenerationModes: VIDEO_PERSON_GENERATION_MODES,
+};
+
 const LIVE_FALLBACK_CAPABILITIES: GeminiLiveModelCapabilities = {
   model: "unknown",
   isKnownModel: false,
@@ -995,6 +1615,14 @@ function isKnownTextModel(modelId: string): modelId is KnownTextGenerationModel 
   return (GEMINI_TEXT_MODELS as readonly string[]).includes(modelId);
 }
 
+function isKnownAudioModel(modelId: string): modelId is KnownAudioGenerationModel {
+  return (GEMINI_AUDIO_MODELS as readonly string[]).includes(modelId);
+}
+
+function isKnownVideoModel(modelId: string): modelId is KnownVideoGenerationModel {
+  return (GEMINI_VIDEO_MODELS as readonly string[]).includes(modelId);
+}
+
 function isKnownLiveModel(modelId: string): modelId is KnownLiveGenerationModel {
   return (GEMINI_LIVE_MODELS as readonly string[]).includes(modelId);
 }
@@ -1027,6 +1655,38 @@ export function getTextModelCapabilities(modelId: string): GeminiTextModelCapabi
 
   return {
     ...TEXT_FALLBACK_CAPABILITIES,
+    model: normalizedModel || modelId || "unknown",
+  };
+}
+
+/**
+ * Resolve audio/TTS-model capabilities for known and unknown model IDs.
+ * Unknown models return a conservative fallback and never throw.
+ */
+export function getAudioModelCapabilities(modelId: string): GeminiAudioModelCapabilities {
+  const normalizedModel = normalizeModelId(modelId);
+  if (isKnownAudioModel(normalizedModel)) {
+    return GEMINI_AUDIO_MODEL_CAPABILITIES[normalizedModel];
+  }
+
+  return {
+    ...AUDIO_FALLBACK_CAPABILITIES,
+    model: normalizedModel || modelId || "unknown",
+  };
+}
+
+/**
+ * Resolve video-model capabilities for known and unknown model IDs.
+ * Unknown models return a conservative fallback and never throw.
+ */
+export function getVideoModelCapabilities(modelId: string): GeminiVideoModelCapabilities {
+  const normalizedModel = normalizeModelId(modelId);
+  if (isKnownVideoModel(normalizedModel)) {
+    return GEMINI_VIDEO_MODEL_CAPABILITIES[normalizedModel];
+  }
+
+  return {
+    ...VIDEO_FALLBACK_CAPABILITIES,
     model: normalizedModel || modelId || "unknown",
   };
 }
@@ -1110,6 +1770,91 @@ export function getTextModelConfigOptions(
 }
 
 /**
+ * Returns model-filtered audio/TTS option descriptors with per-model
+ * constraints merged in.
+ */
+export function getAudioModelConfigOptions(
+  modelId: string,
+): Array<GeminiConfigOptionDescriptor<GeminiAudioConfigOptionKey>> {
+  const capabilities = getAudioModelCapabilities(modelId);
+
+  return capabilities.supportedOptions.map((optionKey) => {
+    const baseDescriptor = GEMINI_AUDIO_CONFIG_OPTIONS[optionKey];
+
+    if (optionKey === "responseModalities") {
+      return {
+        ...baseDescriptor,
+        allowedValues: capabilities.allowedResponseModalities,
+      };
+    }
+
+    return baseDescriptor;
+  });
+}
+
+/**
+ * Returns model-filtered video option descriptors with per-model constraints
+ * merged in.
+ */
+export function getVideoModelConfigOptions(
+  modelId: string,
+): Array<GeminiConfigOptionDescriptor<GeminiVideoConfigOptionKey>> {
+  const capabilities = getVideoModelCapabilities(modelId);
+
+  return capabilities.supportedOptions.map((optionKey) => {
+    const baseDescriptor = GEMINI_VIDEO_CONFIG_OPTIONS[optionKey];
+
+    if (optionKey === "aspectRatio") {
+      return {
+        ...baseDescriptor,
+        allowedValues: capabilities.allowedAspectRatios,
+      };
+    }
+
+    if (optionKey === "resolution") {
+      return {
+        ...baseDescriptor,
+        allowedValues: capabilities.allowedResolutions,
+      };
+    }
+
+    if (optionKey === "durationSeconds") {
+      return {
+        ...baseDescriptor,
+        min: Math.min(...capabilities.allowedDurations),
+        max: Math.max(...capabilities.allowedDurations),
+        defaultValue: capabilities.outputLimits.defaultDuration ?? baseDescriptor.defaultValue,
+      };
+    }
+
+    if (optionKey === "fps") {
+      return {
+        ...baseDescriptor,
+        defaultValue: capabilities.outputLimits.defaultFps ?? baseDescriptor.defaultValue,
+      };
+    }
+
+    if (optionKey === "numberOfVideos") {
+      return {
+        ...baseDescriptor,
+        min: capabilities.outputLimits.minVideos,
+        max: capabilities.outputLimits.maxVideos,
+        defaultValue: capabilities.outputLimits.defaultVideos,
+      };
+    }
+
+    if (optionKey === "personGeneration") {
+      return {
+        ...baseDescriptor,
+        allowedValues: capabilities.allowedPersonGenerationModes,
+      };
+    }
+
+    return baseDescriptor;
+  });
+}
+
+/**
  * Returns model-filtered live option descriptors with per-model constraints merged in.
  */
 export function getLiveModelConfigOptions(
@@ -1147,6 +1892,20 @@ export function getTextModelAttachmentLimits(modelId: string): GeminiTextAttachm
 }
 
 /**
+ * Resolve audio/TTS speaker limits by model.
+ */
+export function getAudioModelSpeakerLimits(modelId: string): GeminiAudioSpeakerLimits {
+  return getAudioModelCapabilities(modelId).speakerLimits;
+}
+
+/**
+ * Resolve video attachment/input limits by model.
+ */
+export function getVideoModelAttachmentLimits(modelId: string): GeminiVideoAttachmentLimits {
+  return getVideoModelCapabilities(modelId).attachmentLimits;
+}
+
+/**
  * Resolve live feature-flag support by model.
  */
 export function getLiveModelFeatureFlags(modelId: string): GeminiLiveModelCapabilities["featureFlags"] {
@@ -1157,19 +1916,14 @@ export function getLiveModelFeatureFlags(modelId: string): GeminiLiveModelCapabi
  * Internal type-level mappings that keep descriptor keys aligned with
  * service option contracts.
  */
-type _ImageOptionContract = Pick<
-  GenerateImageOptions,
-  GeminiImageConfigOptionKey
->;
-type _TextOptionContract = Pick<
-  GenerateTextOptions,
-  GeminiTextConfigOptionKey
->;
-type _LiveOptionContract = Pick<
-  LiveChatSessionOptions,
-  GeminiLiveConfigOptionKey
->;
+type _ImageOptionContract = Pick<GenerateImageOptions, GeminiImageConfigOptionKey>;
+type _TextOptionContract = Pick<GenerateTextOptions, GeminiTextConfigOptionKey>;
+type _AudioOptionContract = Pick<GenerateAudioOptions, GeminiAudioConfigOptionKey>;
+type _VideoOptionContract = Pick<GenerateVideoOptions, GeminiVideoConfigOptionKey>;
+type _LiveOptionContract = Pick<LiveChatSessionOptions, GeminiLiveConfigOptionKey>;
 
 void (0 as unknown as _ImageOptionContract);
 void (0 as unknown as _TextOptionContract);
+void (0 as unknown as _AudioOptionContract);
+void (0 as unknown as _VideoOptionContract);
 void (0 as unknown as _LiveOptionContract);

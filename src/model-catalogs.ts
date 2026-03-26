@@ -25,6 +25,20 @@ export const GEMINI_TEXT_MODELS = [
 export type KnownTextGenerationModel = (typeof GEMINI_TEXT_MODELS)[number];
 
 /**
+ * Shared list of audio/TTS Gemini models for consumer model pickers.
+ */
+export const GEMINI_AUDIO_MODELS = ["gemini-2.5-flash-preview-tts", "gemini-2.5-pro-preview-tts"] as const;
+
+export type KnownAudioGenerationModel = (typeof GEMINI_AUDIO_MODELS)[number];
+
+/**
+ * Shared list of video-generation Gemini models for consumer model pickers.
+ */
+export const GEMINI_VIDEO_MODELS = ["veo-3.1-generate-preview", "veo-3.1-fast-generate-preview"] as const;
+
+export type KnownVideoGenerationModel = (typeof GEMINI_VIDEO_MODELS)[number];
+
+/**
  * Shared list of live-session Gemini models for real-time voice/video flows.
  */
 export const GEMINI_LIVE_MODELS = [
@@ -57,6 +71,22 @@ export const GEMINI_TEXT_MODEL_DISPLAY_NAMES: Record<KnownTextGenerationModel, s
 };
 
 /**
+ * User-facing labels for known audio/TTS models.
+ */
+export const GEMINI_AUDIO_MODEL_DISPLAY_NAMES: Record<KnownAudioGenerationModel, string> = {
+  "gemini-2.5-flash-preview-tts": "Gemini 2.5 Flash Preview TTS",
+  "gemini-2.5-pro-preview-tts": "Gemini 2.5 Pro Preview TTS",
+};
+
+/**
+ * User-facing labels for known video-generation models.
+ */
+export const GEMINI_VIDEO_MODEL_DISPLAY_NAMES: Record<KnownVideoGenerationModel, string> = {
+  "veo-3.1-generate-preview": "Veo 3.1 Generate Preview",
+  "veo-3.1-fast-generate-preview": "Veo 3.1 Fast Generate Preview",
+};
+
+/**
  * User-facing labels for known live models.
  */
 export const GEMINI_LIVE_MODEL_DISPLAY_NAMES: Record<KnownLiveGenerationModel, string> = {
@@ -80,6 +110,24 @@ export function getImageModelDisplayName(model: string): string {
  */
 export function getTextModelDisplayName(model: string): string {
   return GEMINI_TEXT_MODEL_DISPLAY_NAMES[model as KnownTextGenerationModel] ?? model;
+}
+
+/**
+ * Convert a model id to a user-facing display label.
+ * Unknown models fall back to the raw model id so consumer UIs remain robust
+ * when custom or future model ids are used.
+ */
+export function getAudioModelDisplayName(model: string): string {
+  return GEMINI_AUDIO_MODEL_DISPLAY_NAMES[model as KnownAudioGenerationModel] ?? model;
+}
+
+/**
+ * Convert a model id to a user-facing display label.
+ * Unknown models fall back to the raw model id so consumer UIs remain robust
+ * when custom or future model ids are used.
+ */
+export function getVideoModelDisplayName(model: string): string {
+  return GEMINI_VIDEO_MODEL_DISPLAY_NAMES[model as KnownVideoGenerationModel] ?? model;
 }
 
 /**

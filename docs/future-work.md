@@ -51,6 +51,16 @@ Status labels:
       Related: `src/logger.ts`, `src/base.ts`, `src/text.ts`, `src/chat.ts`, `src/live.ts`
       Revisit when: A consuming app starts requiring cross-request/session correlation in its structured log pipeline.
 
+## Quality
+
+- [ ] Add automated contract coverage for model catalogs and capability exports
+      Status: `Planned`
+      Priority: `Medium`
+      Complexity: `Medium`
+      Why later: The library now exports model and config metadata for text, image, audio, video, and live flows, but the repository still relies on build and typecheck rather than automated contract tests to catch metadata drift.
+      Related: `src/model-catalogs.ts`, `src/model-capabilities.ts`, `src/audio.ts`, `src/video.ts`, `README.md`
+      Revisit when: The next metadata update lands or a lightweight test harness is introduced.
+
 ## Packaging And Release
 
 - [ ] Add GitHub Actions release automation with npm provenance/OIDC
