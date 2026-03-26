@@ -35,6 +35,10 @@ and libraries that want a cleaner typed integration surface.
   buffers into Gemini `Part` objects
 - structured logging contracts and logger adapters for injecting app-owned
   sinks into Gemini request flows
+- `createGeminiLiveAudioWorkletModuleUrl(...)`: browser helper for creating a
+  working AudioWorklet module URL for Gemini Live microphone capture
+- `GEMINI_LIVE_AUDIO_WORKLET_SOURCE`: bundled worklet source for consumers that
+  want to self-host or inspect the processor
 - `GEMINI_TEXT_MODELS`: shared text-model list for consumer model pickers
 - `GEMINI_TEXT_MODEL_DISPLAY_NAMES`: user-facing labels for known text models
 - `GEMINI_EMBEDDING_MODELS`: shared embedding-model list for consumer model
@@ -422,7 +426,9 @@ const liveOptions = getLiveModelConfigOptions(liveModel);
 ```
 
 Live sessions are currently **client-side only** because they depend on
-browser audio and media APIs:
+browser audio and media APIs. `GeminiLiveChatSession` also ships with a bundled
+working AudioWorklet, so you do not need to host your own
+`/audio-processor.js` just to get started:
 
 ```ts
 import { GeminiLiveChatSession } from "@villutur/gemini-ai-lib";
@@ -444,6 +450,30 @@ const liveSession = new GeminiLiveChatSession({
 });
 
 await liveSession.connect("Say hello and ask how you can help.");
+```
+
+If you want to manage the worklet module URL explicitly, you can use the
+exported helper:
+
+```ts
+import {
+  createGeminiLiveAudioWorkletModuleUrl,
+  GeminiLiveChatSession,
+  revokeGeminiLiveAudioWorkletModuleUrl,
+} from "@villutur/gemini-ai-lib";
+
+const audioWorkletModulePath = createGeminiLiveAudioWorkletModuleUrl();
+
+try {
+  const liveSession = new GeminiLiveChatSession({
+    apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY,
+    audioWorkletModulePath,
+  });
+
+  await liveSession.connect();
+} finally {
+  revokeGeminiLiveAudioWorkletModuleUrl(audioWorkletModulePath);
+}
 ```
 
 Embedding generation supports both text-only and multimodal inputs:

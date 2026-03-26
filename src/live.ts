@@ -2,6 +2,11 @@ import { ActivityHandling, EndSensitivity, Modality, Session, StartSensitivity }
 import type { FunctionCall, LiveConnectConfig, LiveServerMessage } from "@google/genai";
 import { GeminiBaseService } from "./base.js";
 import type { GeminiServiceOptions } from "./base.js";
+import {
+  createGeminiLiveAudioWorkletModuleUrl,
+  GEMINI_LIVE_AUDIO_WORKLET_PROCESSOR_NAME,
+  revokeGeminiLiveAudioWorkletModuleUrl,
+} from "./live-audio-worklet.js";
 import { geminiLog } from "./logger.js";
 import {
   GEMINI_LIVE_MODELS,
@@ -15,6 +20,12 @@ import {
  */
 export { GEMINI_LIVE_MODELS, GEMINI_LIVE_MODEL_DISPLAY_NAMES, getLiveModelDisplayName };
 export type { KnownLiveGenerationModel };
+export {
+  createGeminiLiveAudioWorkletModuleUrl,
+  GEMINI_LIVE_AUDIO_WORKLET_PROCESSOR_NAME,
+  GEMINI_LIVE_AUDIO_WORKLET_SOURCE,
+  revokeGeminiLiveAudioWorkletModuleUrl,
+} from "./live-audio-worklet.js";
 
 /**
  * Definition for a function calling tool available in a live session.
@@ -110,13 +121,12 @@ export interface LiveChatSessionOptions extends GeminiServiceOptions {
   // VAD
   /** Granular control over the Voice Activity Detection parameters. */
   vadConfig?: VadConfig;
-  /** Path to the audio worklet module used for microphone capture processing. */
+  /** Optional URL/path to the audio worklet module used for microphone capture processing. */
   audioWorkletModulePath?: string;
 }
 
 const DEFAULT_LIVE_MODEL = "gemini-2.5-flash-native-audio-preview-12-2025";
 const DEFAULT_VOICE = "Aoede";
-const DEFAULT_AUDIO_WORKLET_MODULE_PATH = "/audio-processor.js";
 
 function getMissingLiveClientRuntimeApis() {
   const missingApis: string[] = [];
@@ -181,6 +191,7 @@ export class GeminiLiveChatSession extends GeminiBaseService {
   private scheduledAudioSources: AudioBufferSourceNode[] = [];
   private isAudioInputConnected = false;
   private isStopping = false;
+  private createdAudioWorkletModuleUrl: string | null = null;
 
   // Session resumption state
   private lastSessionHandle: string | null = null;
@@ -245,20 +256,33 @@ export class GeminiLiveChatSession extends GeminiBaseService {
       this.audioContext = new AudioContext({ sampleRate: 24000 });
       await this.audioContext.resume();
 
+      const audioWorkletModulePath = this.getAudioWorkletModulePath();
+
       // Initialize AudioWorklet immediately within the user gesture
-      await this.audioContext.audioWorklet.addModule(
-        this.options.audioWorkletModulePath || DEFAULT_AUDIO_WORKLET_MODULE_PATH,
-      );
+      await this.audioContext.audioWorklet.addModule(audioWorkletModulePath);
 
       this.source = this.audioContext.createMediaStreamSource(this.stream);
-      this.audioWorkletNode = new AudioWorkletNode(this.audioContext, "audio-processor");
+      this.audioWorkletNode = new AudioWorkletNode(this.audioContext, GEMINI_LIVE_AUDIO_WORKLET_PROCESSOR_NAME);
 
       return await this.connectLiveSession(greetingPrompt);
     } catch (err) {
       geminiLog.error("Failed to connect to Gemini Live:", err);
+      this.stopStreaming({ suppressOnEnd: true });
       this.options.onError?.(err);
       throw err;
     }
+  }
+
+  private getAudioWorkletModulePath() {
+    if (this.options.audioWorkletModulePath) {
+      return this.options.audioWorkletModulePath;
+    }
+
+    if (!this.createdAudioWorkletModuleUrl) {
+      this.createdAudioWorkletModuleUrl = createGeminiLiveAudioWorkletModuleUrl();
+    }
+
+    return this.createdAudioWorkletModuleUrl;
   }
 
   /**
@@ -755,6 +779,10 @@ export class GeminiLiveChatSession extends GeminiBaseService {
       void this.audioContext.close();
     }
     this.audioContext = null;
+    if (this.createdAudioWorkletModuleUrl) {
+      revokeGeminiLiveAudioWorkletModuleUrl(this.createdAudioWorkletModuleUrl);
+      this.createdAudioWorkletModuleUrl = null;
+    }
 
     const sessionToClose = this.session;
     this.session = null;

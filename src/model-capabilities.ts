@@ -1339,14 +1339,14 @@ export const GEMINI_LIVE_CONFIG_OPTIONS: Record<
     kind: "object",
   },
   /**
-   * URL/path to the audio worklet module used for microphone processing.
+   * Optional URL/path to the audio worklet module used for microphone processing.
    */
   audioWorkletModulePath: {
     key: "audioWorkletModulePath",
     label: "Audio worklet module path",
-    description: "Specifies audio worklet module path used for live microphone capture.",
+    description: "Overrides the audio worklet module URL/path used for live microphone capture.",
     kind: "string",
-    defaultValue: "/audio-processor.js",
+    note: "When omitted, GeminiLiveChatSession creates and uses the bundled exported audio worklet automatically.",
   },
 };
 
