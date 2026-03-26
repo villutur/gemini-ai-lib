@@ -118,6 +118,55 @@ const DEFAULT_LIVE_MODEL = "gemini-2.5-flash-native-audio-preview-12-2025";
 const DEFAULT_VOICE = "Aoede";
 const DEFAULT_AUDIO_WORKLET_MODULE_PATH = "/audio-processor.js";
 
+function getMissingLiveClientRuntimeApis() {
+  const missingApis: string[] = [];
+
+  if (typeof window === "undefined") {
+    missingApis.push("window");
+  }
+  if (typeof navigator === "undefined") {
+    missingApis.push("navigator");
+  }
+  if (typeof navigator !== "undefined" && !navigator.mediaDevices?.getUserMedia) {
+    missingApis.push("navigator.mediaDevices.getUserMedia");
+  }
+  if (typeof AudioContext === "undefined") {
+    missingApis.push("AudioContext");
+  }
+  if (typeof AudioWorkletNode === "undefined") {
+    missingApis.push("AudioWorkletNode");
+  }
+  if (typeof MediaStream === "undefined") {
+    missingApis.push("MediaStream");
+  }
+  if (typeof MediaStreamAudioSourceNode === "undefined") {
+    missingApis.push("MediaStreamAudioSourceNode");
+  }
+  if (typeof AudioBufferSourceNode === "undefined") {
+    missingApis.push("AudioBufferSourceNode");
+  }
+  if (typeof btoa === "undefined" || typeof atob === "undefined") {
+    missingApis.push("btoa/atob");
+  }
+
+  return missingApis;
+}
+
+function assertLiveClientRuntime() {
+  const missingApis = getMissingLiveClientRuntimeApis();
+  if (missingApis.length === 0) {
+    return;
+  }
+
+  throw new Error(
+    [
+      "GeminiLiveChatSession currently requires a browser/client runtime.",
+      `Missing runtime APIs: ${missingApis.join(", ")}.`,
+      "Use this service from client-side code only for now.",
+    ].join(" "),
+  );
+}
+
 /**
  * Core service managing a bidirectional real-time audio and text session via Gemini Live API.
  * Orchestrates microphone capture, audio playback, tool call dispatching, and session resilience.
@@ -148,6 +197,8 @@ export class GeminiLiveChatSession extends GeminiBaseService {
    * Modifies API version setting if experimental alpha features are enabled.
    */
   constructor(options: LiveChatSessionOptions = {}) {
+    assertLiveClientRuntime();
+
     // If v1alpha features are needed, set apiVersion
     const needsAlpha = options.enableAffectiveDialog || options.enableProactiveAudio;
     const effectiveOptions = needsAlpha ? { ...options, apiVersion: "v1alpha" } : options;
@@ -178,6 +229,7 @@ export class GeminiLiveChatSession extends GeminiBaseService {
    * @returns The underlying Session object.
    */
   async connect(greetingPrompt?: string) {
+    assertLiveClientRuntime();
     geminiLog.debug("Connecting GeminiLiveChatSession with options:", this.options);
 
     this.isAudioInputConnected = false;

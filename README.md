@@ -1,22 +1,29 @@
 # gemini-ai-lib
 
-Shared TypeScript wrappers around the Gemini SDK for use across the `vt`
-workspace.
+Reusable TypeScript wrappers around the Gemini SDK for applications, tools,
+and libraries that want a cleaner typed integration surface.
 
 ## Purpose
 
-- Keep reusable Gemini SDK wiring out of individual apps
+- Keep reusable Gemini SDK wiring out of individual projects
 - Provide small, composable services for text, chat, image, audio, and live
   workflows
-- Let consuming apps own app-specific validation, model allowlists, route
+- Let consuming projects own app-specific validation, model allowlists, route
   contracts, and user-facing error handling
 
-## Current Services
+## Services
 
 - `GeminiBaseService`: shared client setup, API key resolution, and tool
   configuration
 - `GeminiTextService`: one-shot text generation helpers
 - `GeminiChatService`: persistent multi-turn chat wrapper
+- `GeminiAudioService`: text-to-speech generation helpers
+- `GeminiImageService`: image generation and SVG generation helpers
+- `GeminiVideoService`: Veo video generation and operation polling helpers
+- `GeminiLiveChatSession`: real-time live-session wrapper, currently client-side only
+
+## Helpers, Catalogs, and Metadata Exports
+
 - `createGeminiThinkingConfig(...)`: reusable low-level thinking-config helper
 - `createGeminiThinkingConfigForModel(...)`: model-aware helper that keeps
   `thinkingLevel` and `thinkingBudget` aligned with the selected Gemini model
@@ -26,8 +33,6 @@ workspace.
   buffers into Gemini `Part` objects
 - structured logging contracts and logger adapters for injecting app-owned
   sinks into Gemini request flows
-- `GeminiAudioService`, `GeminiImageService`, `GeminiVideoService`, and
-  `GeminiLiveChatSession` for richer media and live surfaces
 - `GEMINI_TEXT_MODELS`: shared text-model list for consumer model pickers
 - `GEMINI_TEXT_MODEL_DISPLAY_NAMES`: user-facing labels for known text models
 - `GEMINI_AUDIO_MODELS`: shared audio/TTS model list for consumer model
@@ -62,10 +67,49 @@ workspace.
 pnpm add @villutur/gemini-ai-lib
 ```
 
+## Supported Models
+
+The package exports model catalogs for the currently supported and curated
+model IDs below.
+
+### Text
+
+- `gemini-2.5-flash-lite`
+- `gemini-2.5-flash`
+- `gemini-2.5-pro`
+- `gemini-3-flash-preview`
+- `gemini-3.1-flash-lite-preview`
+- `gemini-3.1-pro-preview`
+
+### Image
+
+- `gemini-2.5-flash-image`
+- `gemini-3.1-flash-image-preview`
+- `gemini-3-pro-image-preview`
+- `imagen-4.0-generate-001`
+
+### Audio
+
+- `gemini-2.5-flash-preview-tts`
+- `gemini-2.5-pro-preview-tts`
+
+### Video
+
+- `veo-3.1-generate-preview`
+- `veo-3.1-fast-generate-preview`
+
+### Live
+
+- `gemini-2.5-flash-native-audio-preview-12-2025`
+- `gemini-2.5-flash-native-audio-preview-09-2025`
+
 ## Usage
 
-Server-side consumption is the default and preferred path for application
-repos such as `vt-playground`.
+Server-side usage is the default and preferred integration path.
+
+`GeminiLiveChatSession` is the main exception right now: it currently depends
+on browser APIs such as `navigator.mediaDevices`, `AudioContext`, and
+`AudioWorkletNode`, so it only works in client-side runtime contexts.
 
 ```ts
 import { GeminiTextService } from "@villutur/gemini-ai-lib";
@@ -82,7 +126,7 @@ const response = await textService.generateTextString("Summarize the current rol
 ```
 
 Persistent text chat can layer on top of `GeminiChatService` while still
-letting the consuming app own validation and request shaping.
+letting the consuming project own validation and request shaping.
 
 ```ts
 import { createGeminiTextChatHistory, GeminiChatService } from "@villutur/gemini-ai-lib";
@@ -105,8 +149,8 @@ const chatService = new GeminiChatService({
 const text = await chatService.sendMessageString("Now add the top two risks and a rollback trigger.");
 ```
 
-Apps can also inject their own structured logger adapter when they want Gemini
-request lifecycle events to land in an app-owned sink.
+Projects can also inject their own structured logger adapter when they want
+Gemini request lifecycle events to land in an app-owned sink.
 
 ```ts
 import { GeminiTextService, type LoggerAdapter } from "@villutur/gemini-ai-lib";
@@ -123,7 +167,8 @@ const textService = new GeminiTextService({
 });
 ```
 
-Apps that own model policy in their own repo can also reuse the library's
+Projects that own model policy in their own codebase can also reuse the
+library's
 thinking-config and response-metadata helpers without giving up control of
 route contracts or storage.
 
@@ -192,9 +237,8 @@ const liveOptions = GEMINI_LIVE_MODELS.map((model) => ({
 }));
 ```
 
-Consumers that need model-aware config dialogs (for example image-generation
-nodes in board/pipeline UIs) can build controls directly from capability and
-option exports:
+Consumers that need model-aware config dialogs can build controls directly from
+capability and option exports:
 
 ```ts
 import { getImageModelCapabilities, getImageModelConfigOptions } from "@villutur/gemini-ai-lib";
@@ -203,11 +247,11 @@ const modelId = "imagen-4.0-generate-001";
 const capabilities = getImageModelCapabilities(modelId);
 const optionDescriptors = getImageModelConfigOptions(modelId);
 
-// Example policy in app code:
-// max attachment slots = model limit - assets already wired from Style Merger
-const styleMergerAssetCount = 2;
+// Example policy in consumer code:
+// max attachment slots = model limit - attachments already reserved elsewhere
+const reservedAttachmentSlots = 2;
 const maxReferenceImages = capabilities.attachmentLimits.maxReferenceImages ?? 0;
-const remainingAttachmentBudget = Math.max(0, maxReferenceImages - styleMergerAssetCount);
+const remainingAttachmentBudget = Math.max(0, maxReferenceImages - reservedAttachmentSlots);
 ```
 
 Audio/TTS consumers can also drive their config controls from model-aware
@@ -262,6 +306,31 @@ const liveCapabilities = getLiveModelCapabilities(liveModel);
 const liveOptions = getLiveModelConfigOptions(liveModel);
 ```
 
+Live sessions are currently **client-side only** because they depend on
+browser audio and media APIs:
+
+```ts
+import { GeminiLiveChatSession } from "@villutur/gemini-ai-lib";
+
+const liveSession = new GeminiLiveChatSession({
+  apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY,
+  model: "gemini-2.5-flash-native-audio-preview-12-2025",
+  systemInstruction: "You are a concise voice assistant.",
+  voiceName: "Aoede",
+  onSetupComplete() {
+    console.log("Live session ready.");
+  },
+  onOutputTranscription(text, isFinal) {
+    console.log("Model said:", text, isFinal ? "(final)" : "(partial)");
+  },
+  onError(error) {
+    console.error("Live session error:", error);
+  },
+});
+
+await liveSession.connect("Say hello and ask how you can help.");
+```
+
 For lightweight UI/model-picker usage without importing runtime services, you
 can also import model catalogs directly from the subpath entry:
 
@@ -307,7 +376,7 @@ import {
 } from "@villutur/gemini-ai-lib/model-capabilities";
 ```
 
-Image-capable apps can also keep their own policy layer while reusing the
+Image-capable projects can also keep their own policy layer while reusing the
 shared image service and model list.
 
 For Gemini image models, the Gemini API returns the model's native image
@@ -322,7 +391,7 @@ const imageService = new GeminiImageService({
   apiKey: process.env.GEMINI_API_KEY,
 });
 
-const result = await imageService.generateImageFromPrompt("Create a clean workspace logo with bold geometry.", {
+const result = await imageService.generateImageFromPrompt("Create a clean geometric product logo.", {
   model: "gemini-3.1-flash-image-preview",
   aspectRatio: "1:1",
 });
@@ -331,7 +400,7 @@ const result = await imageService.generateImageFromPrompt("Create a clean worksp
 If you need explicit output-format control, use an Imagen-capable model:
 
 ```ts
-const result = await imageService.generateImageFromPrompt("Create a clean workspace logo with bold geometry.", {
+const result = await imageService.generateImageFromPrompt("Create a clean geometric product logo.", {
   model: "imagen-4.0-generate-001",
   aspectRatio: "1:1",
   outputMimeType: "image/png",
@@ -392,7 +461,7 @@ const result = await imageService.generateImage(
 - Prefer `GEMINI_API_KEY` for server-side usage.
 - `NEXT_PUBLIC_GEMINI_API_KEY` is treated as a deliberate browser-oriented
   fallback, not the default integration path.
-- App repos should not depend on a public Gemini key unless the user explicitly
+- Projects should not depend on a public Gemini key unless the user explicitly
   wants a browser-side integration and accepts that tradeoff.
 
 The base service now resolves keys in this order:
@@ -410,14 +479,15 @@ official Gemini model index as the source of truth:
 
 - Import from the package name, not from `src/` or sibling repo paths.
 - Keep generic Gemini SDK concerns here.
-- This library exports model limits and config-option metadata; consuming apps
+- This library exports model limits and config-option metadata; consuming
+  projects
   still own final UI policy, validation, and product-specific constraints.
 - Keep reusable history shaping and portable chat-session helpers here when
   they are app-agnostic.
 - Keep logger contracts and lifecycle emission generic here, while letting the
-  consuming app own storage, retention, and log-history UI.
+  consuming project own storage, retention, and log-history UI.
 - Keep app-specific model allowlists, request validation, transport contracts,
-  and user-facing error mapping in the consuming app.
+  and user-facing error mapping in the consuming project.
 
 ## Development
 

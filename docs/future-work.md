@@ -17,14 +17,6 @@ Status labels:
 
 ## Live
 
-- [ ] Add an explicit client-runtime guard for `GeminiLiveChatSession`
-      Status: `Planned`
-      Priority: `High`
-      Complexity: `Low`
-      Why later: The library should fail fast and clearly when a live-session helper is used in the wrong runtime instead of letting that surface as a vague downstream error.
-      Related: `src/live.ts`
-      Revisit when: The next app starts consuming live helpers directly.
-
 - [ ] Research server-side live-session support
       Status: `Research`
       Priority: `Medium`
