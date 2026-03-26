@@ -16,6 +16,8 @@ image, audio, music, video, and live surfaces.
 - `GEMINI_TEXT_MODEL_CAPABILITIES`
 - `GEMINI_EMBEDDING_MODEL_CAPABILITIES`
 - `GEMINI_AUDIO_MODEL_CAPABILITIES`
+- `GEMINI_AUDIO_VOICES`
+- `GEMINI_AUDIO_VOICE_CATALOG`
 - `GEMINI_MUSIC_MODEL_CAPABILITIES`
 - `GEMINI_VIDEO_MODEL_CAPABILITIES`
 - `GEMINI_LIVE_MODEL_CAPABILITIES`
@@ -33,6 +35,8 @@ image, audio, music, video, and live surfaces.
 - `getTextModelCapabilities(modelId)`
 - `getEmbeddingModelCapabilities(modelId)`
 - `getAudioModelCapabilities(modelId)`
+- `getAudioVoiceNames()`
+- `getAudioVoiceOptions()`
 - `getMusicModelCapabilities(modelId)`
 - `getVideoModelCapabilities(modelId)`
 - `getLiveModelCapabilities(modelId)`
@@ -89,6 +93,7 @@ limits structure.
   - `GeminiAudioModelCapabilities`
   - `GeminiAudioInputLimits`
   - `GeminiAudioSpeakerLimits`
+  - `GeminiAudioVoice`
 - Music:
   - `GeminiMusicModelCapabilities`
   - `GeminiMusicAttachmentLimits`
@@ -111,6 +116,19 @@ Each capability object includes at least:
 
 Family-specific fields then describe attachment/input support, output limits,
 allowed enum values, and live feature flags as appropriate.
+
+For audio/TTS specifically:
+
+- `GEMINI_AUDIO_CONFIG_OPTIONS.voiceName.allowedValues` exposes the curated
+  exported voice-name list
+- `GEMINI_LIVE_CONFIG_OPTIONS.voiceName.allowedValues` reuses the same curated
+  exported voice-name list
+- `GEMINI_AUDIO_VOICE_CATALOG` provides richer metadata for voice pickers
+- `GeminiAudioModelCapabilities` includes `supportedVoiceNames` and
+  `defaultVoiceName`
+
+The voice catalog is exported as consumer guidance metadata for UI building and
+defaults. It is not a strict runtime restriction on `GenerateAudioOptions.voiceName`.
 
 ## Type-Level Safety
 

@@ -45,6 +45,10 @@ and libraries that want a cleaner typed integration surface.
   pickers
 - `GEMINI_AUDIO_MODEL_DISPLAY_NAMES`: user-facing labels for known audio/TTS
   models
+- `GEMINI_AUDIO_VOICES`: curated prebuilt Gemini voice names for audio/TTS
+  pickers
+- `GEMINI_AUDIO_VOICE_CATALOG`: richer voice metadata including sample URLs and
+  descriptive traits
 - `GEMINI_MUSIC_MODELS`: shared music-generation model list for consumer model
   pickers
 - `GEMINI_MUSIC_MODEL_DISPLAY_NAMES`: user-facing labels for known music
@@ -250,6 +254,20 @@ const audioOptions = GEMINI_AUDIO_MODELS.map((model) => ({
 }));
 ```
 
+Audio/TTS voice pickers can also use the exported curated voice catalog:
+
+```ts
+import { GEMINI_AUDIO_VOICES, GeminiAudioService } from "@villutur/gemini-ai-lib";
+
+const selectedVoice = GEMINI_AUDIO_VOICES[0] ?? "Kore";
+const audioService = new GeminiAudioService();
+
+const audioBuffer = await audioService.generateAudio("Hello from Gemini TTS.", undefined, {
+  model: "gemini-2.5-flash-preview-tts",
+  voiceName: selectedVoice,
+});
+```
+
 Music model pickers can use the same pattern:
 
 ```ts
@@ -322,14 +340,20 @@ Audio/TTS consumers can also drive their config controls from model-aware
 capability exports:
 
 ```ts
-import { getAudioModelCapabilities, getAudioModelConfigOptions } from "@villutur/gemini-ai-lib";
+import {
+  getAudioModelCapabilities,
+  getAudioModelConfigOptions,
+  getAudioVoiceOptions,
+} from "@villutur/gemini-ai-lib";
 
 const audioModel = "gemini-2.5-flash-preview-tts";
 const audioCapabilities = getAudioModelCapabilities(audioModel);
 const audioOptionDescriptors = getAudioModelConfigOptions(audioModel);
+const audioVoices = getAudioVoiceOptions();
 
 const supportsDialogue = audioCapabilities.speakerLimits.supportsMultiSpeaker;
 const maxSpeakers = audioCapabilities.speakerLimits.maxSpeakers ?? 1;
+const defaultVoice = audioCapabilities.defaultVoiceName;
 ```
 
 The current `@google/genai` SDK surface exposes `voiceName`,
@@ -337,6 +361,14 @@ The current `@google/genai` SDK surface exposes `voiceName`,
 request shaping. The Gemini docs also mention controls such as speaking rate,
 pitch, and volume gain, but those are not exported here until the SDK exposes
 a stable typed contract for them.
+
+The exported voice catalog is consumer guidance metadata for building pickers
+and defaults. `GenerateAudioOptions.voiceName` intentionally remains a plain
+string so callers can stay forward-compatible with newly available voices.
+
+`GEMINI_LIVE_CONFIG_OPTIONS.voiceName` uses the same curated voice-name list,
+so Live clients can build consistent voice pickers from the same exported
+catalog.
 
 Music consumers can drive Lyria config controls from model-aware capability
 exports:
@@ -538,12 +570,16 @@ import {
   GEMINI_TEXT_MODELS,
   GEMINI_EMBEDDING_MODELS,
   GEMINI_AUDIO_MODELS,
+  GEMINI_AUDIO_VOICES,
+  GEMINI_AUDIO_VOICE_CATALOG,
   GEMINI_MUSIC_MODELS,
   GEMINI_VIDEO_MODELS,
   GEMINI_IMAGE_MODELS,
   GEMINI_LIVE_MODELS,
   getEmbeddingModelDisplayName,
   getAudioModelDisplayName,
+  getAudioVoiceNames,
+  getAudioVoiceOptions,
   getMusicModelDisplayName,
   getVideoModelDisplayName,
   getTextModelDisplayName,
@@ -559,6 +595,8 @@ import {
   GEMINI_EMBEDDING_CONFIG_OPTIONS,
   GEMINI_AUDIO_MODEL_CAPABILITIES,
   GEMINI_AUDIO_CONFIG_OPTIONS,
+  GEMINI_AUDIO_VOICES,
+  GEMINI_AUDIO_VOICE_CATALOG,
   GEMINI_MUSIC_MODEL_CAPABILITIES,
   GEMINI_MUSIC_CONFIG_OPTIONS,
   GEMINI_VIDEO_MODEL_CAPABILITIES,
@@ -575,6 +613,8 @@ import {
   getAudioModelCapabilities,
   getAudioModelConfigOptions,
   getAudioModelSpeakerLimits,
+  getAudioVoiceNames,
+  getAudioVoiceOptions,
   getMusicModelAttachmentLimits,
   getMusicModelCapabilities,
   getMusicModelConfigOptions,

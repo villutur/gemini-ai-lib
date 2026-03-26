@@ -1,4 +1,5 @@
 import type { GenerateAudioOptions } from "./audio.js";
+import { GEMINI_AUDIO_VOICES } from "./audio-voices.js";
 import type { GenerateEmbeddingOptions, GeminiEmbeddingTaskType } from "./embedding.js";
 import type { GenerateImageOptions, GeminiFlashAspectRatio, GeminiImageSize } from "./image.js";
 import type { LiveChatSessionOptions } from "./live.js";
@@ -31,6 +32,15 @@ import {
   type GeminiThinkingModelSupport,
   type GeminiThinkingProfileLevel,
 } from "./response-metadata.js";
+
+export {
+  GEMINI_AUDIO_VOICE_CATALOG,
+  GEMINI_AUDIO_VOICES,
+  getAudioVoiceNames,
+  getAudioVoiceOptions,
+  type GeminiAudioVoice,
+  type GeminiAudioVoiceName,
+} from "./audio-voices.js";
 
 /**
  * Discriminates where a returned capability record came from.
@@ -511,6 +521,19 @@ export interface GeminiAudioModelCapabilities {
    * Output modalities this model is expected to emit.
    */
   allowedResponseModalities: readonly string[];
+  /**
+   * Curated prebuilt voice names available for this model path.
+   */
+  supportedVoiceNames: readonly string[];
+  /**
+   * Recommended default voice name for this model path.
+   */
+  defaultVoiceName: string;
+  /**
+   * Indicates whether the package exports a curated voice catalog for this
+   * model path.
+   */
+  voiceCatalogAvailable: boolean;
   /**
    * Which config keys are available for this model.
    */
@@ -1029,6 +1052,8 @@ export const GEMINI_AUDIO_CONFIG_OPTIONS: Record<
     description: "Selects the prebuilt voice used for single-speaker synthesis.",
     kind: "string",
     defaultValue: "Kore",
+    allowedValues: GEMINI_AUDIO_VOICES,
+    note: "The library exports a curated catalog of currently available prebuilt Gemini voices for picker UIs and sensible defaults.",
   },
   /**
    * Language hint passed to the TTS speech configuration.
@@ -1238,6 +1263,8 @@ export const GEMINI_LIVE_CONFIG_OPTIONS: Record<
     description: "Selects prebuilt voice identity for audio responses.",
     kind: "string",
     defaultValue: "Aoede",
+    allowedValues: GEMINI_AUDIO_VOICES,
+    note: "Live sessions reuse the same curated prebuilt Gemini voice catalog exported for audio/TTS picker UIs.",
   },
   /**
    * Function/tool declarations available during the session.
@@ -1645,6 +1672,9 @@ const KNOWN_AUDIO_MODEL_CAPABILITIES: Record<KnownAudioGenerationModel, GeminiAu
       multiSpeakerExactCount: 2,
     },
     allowedResponseModalities: ["AUDIO"],
+    supportedVoiceNames: GEMINI_AUDIO_VOICES,
+    defaultVoiceName: "Kore",
+    voiceCatalogAvailable: true,
     supportedOptions: AUDIO_OPTION_KEYS,
     unsupportedOptions: [],
   },
@@ -1664,6 +1694,9 @@ const KNOWN_AUDIO_MODEL_CAPABILITIES: Record<KnownAudioGenerationModel, GeminiAu
       multiSpeakerExactCount: 2,
     },
     allowedResponseModalities: ["AUDIO"],
+    supportedVoiceNames: GEMINI_AUDIO_VOICES,
+    defaultVoiceName: "Kore",
+    voiceCatalogAvailable: true,
     supportedOptions: AUDIO_OPTION_KEYS,
     unsupportedOptions: [],
   },
@@ -1997,6 +2030,9 @@ const AUDIO_FALLBACK_CAPABILITIES: GeminiAudioModelCapabilities = {
     multiSpeakerExactCount: null,
   },
   allowedResponseModalities: ["AUDIO"],
+  supportedVoiceNames: GEMINI_AUDIO_VOICES,
+  defaultVoiceName: "Kore",
+  voiceCatalogAvailable: true,
   supportedOptions: ["voiceName", "languageCode", "responseModalities"],
   unsupportedOptions: toUnsupportedOptions(["voiceName", "languageCode", "responseModalities"], AUDIO_OPTION_KEYS),
 };
