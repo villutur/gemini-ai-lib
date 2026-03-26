@@ -5,6 +5,7 @@ export * from "./helpers.js";
 export * from "./text.js";
 export * from "./chat.js";
 export * from "./audio.js";
+export * from "./music.js";
 export * from "./image.js";
 export * from "./video.js";
 export * from "./live.js";

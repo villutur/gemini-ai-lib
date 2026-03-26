@@ -1,6 +1,7 @@
 import type { GenerateAudioOptions } from "./audio.js";
 import type { GenerateImageOptions, GeminiFlashAspectRatio, GeminiImageSize } from "./image.js";
 import type { LiveChatSessionOptions } from "./live.js";
+import type { GenerateMusicOptions } from "./music.js";
 import type { GenerateTextOptions } from "./text.js";
 import type {
   GenerateVideoOptions,
@@ -12,11 +13,13 @@ import {
   GEMINI_AUDIO_MODELS,
   GEMINI_IMAGE_MODELS,
   GEMINI_LIVE_MODELS,
+  GEMINI_MUSIC_MODELS,
   GEMINI_TEXT_MODELS,
   GEMINI_VIDEO_MODELS,
   type KnownAudioGenerationModel,
   type KnownImageGenerationModel,
   type KnownLiveGenerationModel,
+  type KnownMusicGenerationModel,
   type KnownTextGenerationModel,
   type KnownVideoGenerationModel,
 } from "./model-catalogs.js";
@@ -39,7 +42,7 @@ export type GeminiCapabilitySource = "catalog" | "fallback";
 export type GeminiConfigOptionKind = "string" | "number" | "boolean" | "array" | "object";
 
 /**
- * Shared descriptor shape used by image/text/audio/video/live config option catalogs.
+ * Shared descriptor shape used by image/text/audio/music/video/live config option catalogs.
  * Consumers can use this to render generic model configuration controls.
  */
 export interface GeminiConfigOptionDescriptor<TKey extends string = string> {
@@ -123,6 +126,12 @@ export type GeminiAudioConfigOptionKey =
   | "languageCode"
   | "responseModalities"
   | "multiSpeakerVoiceConfig";
+
+/**
+ * Music-generation option keys exported for dynamic UI/config generation.
+ * These keys map to `GenerateMusicOptions`.
+ */
+export type GeminiMusicConfigOptionKey = "responseModalities";
 
 /**
  * Video option keys exported for dynamic UI/config generation.
@@ -393,6 +402,86 @@ export interface GeminiAudioModelCapabilities {
    * Which config keys are intentionally unsupported for this model.
    */
   unsupportedOptions: readonly GeminiAudioConfigOptionKey[];
+}
+
+/**
+ * Input constraints for Gemini music-generation models.
+ */
+export interface GeminiMusicAttachmentLimits {
+  /**
+   * Whether plain text prompts are supported.
+   */
+  supportsTextPrompt: boolean;
+  /**
+   * Whether image-guided music generation is supported.
+   */
+  supportsImageInput: boolean;
+  /**
+   * Whether the stable exported contract includes timed lyrics metadata.
+   */
+  supportsTimedLyricsMetadata: boolean;
+}
+
+/**
+ * Output constraints for Gemini music-generation models.
+ */
+export interface GeminiMusicOutputLimits {
+  /**
+   * Whether the model returns generated audio.
+   */
+  supportsAudioOutput: boolean;
+  /**
+   * Best-fit descriptive use case for the model.
+   */
+  bestFor: string;
+  /**
+   * Maximum duration in seconds when the model has a stable documented cap.
+   * Null means descriptive prompt-driven duration rather than fixed numeric
+   * enforcement in the stable library contract.
+   */
+  maxDurationSeconds: number | null;
+  /**
+   * Allowed output MIME types documented for this model path.
+   */
+  allowedOutputMimeTypes: readonly string[];
+}
+
+/**
+ * Canonical capability payload for music-generation models.
+ */
+export interface GeminiMusicModelCapabilities {
+  /**
+   * Raw model id requested by the caller.
+   */
+  model: string;
+  /**
+   * True when the model exists in the known music model catalog.
+   */
+  isKnownModel: boolean;
+  /**
+   * Indicates whether this record comes from catalog data or a fallback.
+   */
+  source: GeminiCapabilitySource;
+  /**
+   * Input/source constraints for the music request.
+   */
+  attachmentLimits: GeminiMusicAttachmentLimits;
+  /**
+   * Output constraints for the music request.
+   */
+  outputLimits: GeminiMusicOutputLimits;
+  /**
+   * Which config keys are available for this model.
+   */
+  supportedOptions: readonly GeminiMusicConfigOptionKey[];
+  /**
+   * Which config keys are intentionally unsupported for this model.
+   */
+  unsupportedOptions: readonly GeminiMusicConfigOptionKey[];
+  /**
+   * Allowed response modalities for the selected model path.
+   */
+  allowedResponseModalities: readonly string[];
 }
 
 /**
@@ -806,6 +895,29 @@ export const GEMINI_AUDIO_CONFIG_OPTIONS: Record<
 };
 
 /**
+ * Complete music-generation config option catalog.
+ * Consumers can filter this per model with `getMusicModelConfigOptions(...)`.
+ */
+export const GEMINI_MUSIC_CONFIG_OPTIONS: Record<
+  GeminiMusicConfigOptionKey,
+  GeminiConfigOptionDescriptor<GeminiMusicConfigOptionKey>
+> = {
+  /**
+   * Requested response modalities for the Lyria response.
+   */
+  responseModalities: {
+    key: "responseModalities",
+    label: "Response modalities",
+    description:
+      "Controls whether Lyria returns audio, text metadata, or both through the stable generateContent flow.",
+    kind: "array",
+    allowedValues: ["AUDIO", "TEXT"],
+    defaultValue: ["AUDIO", "TEXT"],
+    note: "Lyria v1 in this library uses generateContent(...) with text/image input and audio/text output. Richer musical controls remain prompt-driven rather than typed config fields.",
+  },
+};
+
+/**
  * Complete video config option catalog.
  * Consumers can filter this per model with `getVideoModelConfigOptions(...)`.
  */
@@ -1043,6 +1155,7 @@ export const GEMINI_LIVE_CONFIG_OPTIONS: Record<
 const IMAGE_OPTION_KEYS = Object.keys(GEMINI_IMAGE_CONFIG_OPTIONS) as GeminiImageConfigOptionKey[];
 const TEXT_OPTION_KEYS = Object.keys(GEMINI_TEXT_CONFIG_OPTIONS) as GeminiTextConfigOptionKey[];
 const AUDIO_OPTION_KEYS = Object.keys(GEMINI_AUDIO_CONFIG_OPTIONS) as GeminiAudioConfigOptionKey[];
+const MUSIC_OPTION_KEYS = Object.keys(GEMINI_MUSIC_CONFIG_OPTIONS) as GeminiMusicConfigOptionKey[];
 const VIDEO_OPTION_KEYS = Object.keys(GEMINI_VIDEO_CONFIG_OPTIONS) as GeminiVideoConfigOptionKey[];
 const LIVE_OPTION_KEYS = Object.keys(GEMINI_LIVE_CONFIG_OPTIONS) as GeminiLiveConfigOptionKey[];
 
@@ -1313,6 +1426,47 @@ const KNOWN_AUDIO_MODEL_CAPABILITIES: Record<KnownAudioGenerationModel, GeminiAu
   },
 };
 
+const KNOWN_MUSIC_MODEL_CAPABILITIES: Record<KnownMusicGenerationModel, GeminiMusicModelCapabilities> = {
+  "lyria-3-clip-preview": {
+    model: "lyria-3-clip-preview",
+    isKnownModel: true,
+    source: "catalog",
+    attachmentLimits: {
+      supportsTextPrompt: true,
+      supportsImageInput: true,
+      supportsTimedLyricsMetadata: false,
+    },
+    outputLimits: {
+      supportsAudioOutput: true,
+      bestFor: "short clips, loops, previews",
+      maxDurationSeconds: 30,
+      allowedOutputMimeTypes: ["audio/mpeg"],
+    },
+    supportedOptions: MUSIC_OPTION_KEYS,
+    unsupportedOptions: [],
+    allowedResponseModalities: ["AUDIO", "TEXT"],
+  },
+  "lyria-3-pro-preview": {
+    model: "lyria-3-pro-preview",
+    isKnownModel: true,
+    source: "catalog",
+    attachmentLimits: {
+      supportsTextPrompt: true,
+      supportsImageInput: true,
+      supportsTimedLyricsMetadata: false,
+    },
+    outputLimits: {
+      supportsAudioOutput: true,
+      bestFor: "full-length songs and structured compositions",
+      maxDurationSeconds: null,
+      allowedOutputMimeTypes: ["audio/mpeg", "audio/wav"],
+    },
+    supportedOptions: MUSIC_OPTION_KEYS,
+    unsupportedOptions: [],
+    allowedResponseModalities: ["AUDIO", "TEXT"],
+  },
+};
+
 const KNOWN_VIDEO_MODEL_CAPABILITIES: Record<KnownVideoGenerationModel, GeminiVideoModelCapabilities> = {
   "veo-3.1-generate-preview": {
     model: "veo-3.1-generate-preview",
@@ -1441,6 +1595,13 @@ for (const model of GEMINI_AUDIO_MODELS) {
   );
 }
 
+for (const model of GEMINI_MUSIC_MODELS) {
+  KNOWN_MUSIC_MODEL_CAPABILITIES[model].unsupportedOptions = toUnsupportedOptions(
+    KNOWN_MUSIC_MODEL_CAPABILITIES[model].supportedOptions,
+    MUSIC_OPTION_KEYS,
+  );
+}
+
 for (const model of GEMINI_VIDEO_MODELS) {
   KNOWN_VIDEO_MODEL_CAPABILITIES[model].unsupportedOptions = toUnsupportedOptions(
     KNOWN_VIDEO_MODEL_CAPABILITIES[model].supportedOptions,
@@ -1474,6 +1635,13 @@ export const GEMINI_TEXT_MODEL_CAPABILITIES: Readonly<Record<KnownTextGeneration
 export const GEMINI_AUDIO_MODEL_CAPABILITIES: Readonly<
   Record<KnownAudioGenerationModel, GeminiAudioModelCapabilities>
 > = KNOWN_AUDIO_MODEL_CAPABILITIES;
+
+/**
+ * Public music-generation capability catalog keyed by known music model IDs.
+ */
+export const GEMINI_MUSIC_MODEL_CAPABILITIES: Readonly<
+  Record<KnownMusicGenerationModel, GeminiMusicModelCapabilities>
+> = KNOWN_MUSIC_MODEL_CAPABILITIES;
 
 /**
  * Public video-capability catalog keyed by known video model IDs.
@@ -1551,6 +1719,26 @@ const AUDIO_FALLBACK_CAPABILITIES: GeminiAudioModelCapabilities = {
   unsupportedOptions: toUnsupportedOptions(["voiceName", "languageCode", "responseModalities"], AUDIO_OPTION_KEYS),
 };
 
+const MUSIC_FALLBACK_CAPABILITIES: GeminiMusicModelCapabilities = {
+  model: "unknown",
+  isKnownModel: false,
+  source: "fallback",
+  attachmentLimits: {
+    supportsTextPrompt: true,
+    supportsImageInput: true,
+    supportsTimedLyricsMetadata: false,
+  },
+  outputLimits: {
+    supportsAudioOutput: true,
+    bestFor: "general music generation",
+    maxDurationSeconds: null,
+    allowedOutputMimeTypes: ["audio/mpeg"],
+  },
+  supportedOptions: MUSIC_OPTION_KEYS,
+  unsupportedOptions: [],
+  allowedResponseModalities: ["AUDIO", "TEXT"],
+};
+
 const VIDEO_FALLBACK_CAPABILITIES: GeminiVideoModelCapabilities = {
   model: "unknown",
   isKnownModel: false,
@@ -1619,6 +1807,10 @@ function isKnownAudioModel(modelId: string): modelId is KnownAudioGenerationMode
   return (GEMINI_AUDIO_MODELS as readonly string[]).includes(modelId);
 }
 
+function isKnownMusicModel(modelId: string): modelId is KnownMusicGenerationModel {
+  return (GEMINI_MUSIC_MODELS as readonly string[]).includes(modelId);
+}
+
 function isKnownVideoModel(modelId: string): modelId is KnownVideoGenerationModel {
   return (GEMINI_VIDEO_MODELS as readonly string[]).includes(modelId);
 }
@@ -1671,6 +1863,22 @@ export function getAudioModelCapabilities(modelId: string): GeminiAudioModelCapa
 
   return {
     ...AUDIO_FALLBACK_CAPABILITIES,
+    model: normalizedModel || modelId || "unknown",
+  };
+}
+
+/**
+ * Resolve music-model capabilities for known and unknown model IDs.
+ * Unknown models return a conservative fallback and never throw.
+ */
+export function getMusicModelCapabilities(modelId: string): GeminiMusicModelCapabilities {
+  const normalizedModel = normalizeModelId(modelId);
+  if (isKnownMusicModel(normalizedModel)) {
+    return GEMINI_MUSIC_MODEL_CAPABILITIES[normalizedModel];
+  }
+
+  return {
+    ...MUSIC_FALLBACK_CAPABILITIES,
     model: normalizedModel || modelId || "unknown",
   };
 }
@@ -1793,6 +2001,29 @@ export function getAudioModelConfigOptions(
 }
 
 /**
+ * Returns model-filtered music option descriptors with per-model constraints
+ * merged in.
+ */
+export function getMusicModelConfigOptions(
+  modelId: string,
+): Array<GeminiConfigOptionDescriptor<GeminiMusicConfigOptionKey>> {
+  const capabilities = getMusicModelCapabilities(modelId);
+
+  return capabilities.supportedOptions.map((optionKey) => {
+    const baseDescriptor = GEMINI_MUSIC_CONFIG_OPTIONS[optionKey];
+
+    if (optionKey === "responseModalities") {
+      return {
+        ...baseDescriptor,
+        allowedValues: capabilities.allowedResponseModalities,
+      };
+    }
+
+    return baseDescriptor;
+  });
+}
+
+/**
  * Returns model-filtered video option descriptors with per-model constraints
  * merged in.
  */
@@ -1899,6 +2130,13 @@ export function getAudioModelSpeakerLimits(modelId: string): GeminiAudioSpeakerL
 }
 
 /**
+ * Resolve music attachment/input limits by model.
+ */
+export function getMusicModelAttachmentLimits(modelId: string): GeminiMusicAttachmentLimits {
+  return getMusicModelCapabilities(modelId).attachmentLimits;
+}
+
+/**
  * Resolve video attachment/input limits by model.
  */
 export function getVideoModelAttachmentLimits(modelId: string): GeminiVideoAttachmentLimits {
@@ -1919,11 +2157,13 @@ export function getLiveModelFeatureFlags(modelId: string): GeminiLiveModelCapabi
 type _ImageOptionContract = Pick<GenerateImageOptions, GeminiImageConfigOptionKey>;
 type _TextOptionContract = Pick<GenerateTextOptions, GeminiTextConfigOptionKey>;
 type _AudioOptionContract = Pick<GenerateAudioOptions, GeminiAudioConfigOptionKey>;
+type _MusicOptionContract = Pick<GenerateMusicOptions, GeminiMusicConfigOptionKey>;
 type _VideoOptionContract = Pick<GenerateVideoOptions, GeminiVideoConfigOptionKey>;
 type _LiveOptionContract = Pick<LiveChatSessionOptions, GeminiLiveConfigOptionKey>;
 
 void (0 as unknown as _ImageOptionContract);
 void (0 as unknown as _TextOptionContract);
 void (0 as unknown as _AudioOptionContract);
+void (0 as unknown as _MusicOptionContract);
 void (0 as unknown as _VideoOptionContract);
 void (0 as unknown as _LiveOptionContract);

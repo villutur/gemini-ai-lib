@@ -6,8 +6,8 @@ and libraries that want a cleaner typed integration surface.
 ## Purpose
 
 - Keep reusable Gemini SDK wiring out of individual projects
-- Provide small, composable services for text, chat, image, audio, and live
-  workflows
+- Provide small, composable services for text, chat, image, music, audio,
+  video, and live workflows
 - Let consuming projects own app-specific validation, model allowlists, route
   contracts, and user-facing error handling
 
@@ -18,6 +18,7 @@ and libraries that want a cleaner typed integration surface.
 - `GeminiTextService`: one-shot text generation helpers
 - `GeminiChatService`: persistent multi-turn chat wrapper
 - `GeminiAudioService`: text-to-speech generation helpers
+- `GeminiMusicService`: non-realtime Lyria music generation helpers
 - `GeminiImageService`: image generation and SVG generation helpers
 - `GeminiVideoService`: Veo video generation and operation polling helpers
 - `GeminiLiveChatSession`: real-time live-session wrapper, currently client-side only
@@ -39,6 +40,10 @@ and libraries that want a cleaner typed integration surface.
   pickers
 - `GEMINI_AUDIO_MODEL_DISPLAY_NAMES`: user-facing labels for known audio/TTS
   models
+- `GEMINI_MUSIC_MODELS`: shared music-generation model list for consumer model
+  pickers
+- `GEMINI_MUSIC_MODEL_DISPLAY_NAMES`: user-facing labels for known music
+  models
 - `GEMINI_VIDEO_MODELS`: shared video-generation model list for consumer model
   pickers
 - `GEMINI_VIDEO_MODEL_DISPLAY_NAMES`: user-facing labels for known video
@@ -53,6 +58,8 @@ and libraries that want a cleaner typed integration surface.
   config options for dynamic UIs
 - `GEMINI_AUDIO_MODEL_CAPABILITIES`: model-aware audio/TTS limits and
   supported config options for dynamic UIs
+- `GEMINI_MUSIC_MODEL_CAPABILITIES`: model-aware music limits and supported
+  config options for dynamic UIs
 - `GEMINI_VIDEO_MODEL_CAPABILITIES`: model-aware video limits and supported
   config options for dynamic UIs
 - `GEMINI_LIVE_MODEL_CAPABILITIES`: model-aware live-session limits and
@@ -92,6 +99,11 @@ model IDs below.
 
 - `gemini-2.5-flash-preview-tts`
 - `gemini-2.5-pro-preview-tts`
+
+### Music
+
+- `lyria-3-clip-preview`
+- `lyria-3-pro-preview`
 
 ### Video
 
@@ -215,6 +227,17 @@ const audioOptions = GEMINI_AUDIO_MODELS.map((model) => ({
 }));
 ```
 
+Music model pickers can use the same pattern:
+
+```ts
+import { GEMINI_MUSIC_MODELS, getMusicModelDisplayName } from "@villutur/gemini-ai-lib";
+
+const musicOptions = GEMINI_MUSIC_MODELS.map((model) => ({
+  value: model,
+  label: getMusicModelDisplayName(model),
+}));
+```
+
 Video model pickers can use the same pattern:
 
 ```ts
@@ -274,6 +297,25 @@ request shaping. The Gemini docs also mention controls such as speaking rate,
 pitch, and volume gain, but those are not exported here until the SDK exposes
 a stable typed contract for them.
 
+Music consumers can drive Lyria config controls from model-aware capability
+exports:
+
+```ts
+import { getMusicModelCapabilities, getMusicModelConfigOptions } from "@villutur/gemini-ai-lib";
+
+const musicModel = "lyria-3-pro-preview";
+const musicCapabilities = getMusicModelCapabilities(musicModel);
+const musicOptionDescriptors = getMusicModelConfigOptions(musicModel);
+
+const supportsImageGuidance = musicCapabilities.attachmentLimits.supportsImageInput;
+const bestFor = musicCapabilities.outputLimits.bestFor;
+```
+
+Lyria music generation in v1 is intentionally based on the official stable
+`generateContent(...)` flow. Richer controls such as BPM, intensity,
+generate-lyrics, and vocal-type remain prompt-driven and are not part of the
+typed runtime API yet.
+
 Video consumers can also drive Veo controls from model-aware capability
 exports:
 
@@ -331,6 +373,51 @@ const liveSession = new GeminiLiveChatSession({
 await liveSession.connect("Say hello and ask how you can help.");
 ```
 
+Music generation uses Lyria through the stable `generateContent(...)` path:
+
+```ts
+import { GeminiMusicService } from "@villutur/gemini-ai-lib";
+
+const musicService = new GeminiMusicService({
+  apiKey: process.env.GEMINI_API_KEY,
+});
+
+const result = await musicService.generateMusicFromPrompt(
+  "Create a 30-second cheerful acoustic folk track with guitar and harmonica.",
+  {
+    model: "lyria-3-clip-preview",
+  },
+);
+
+const firstClip = result.audioBuffer;
+const description = result.text;
+```
+
+You can also guide Lyria with an image reference:
+
+```ts
+import { readFile } from "node:fs/promises";
+import { GeminiAttachmentHelper, GeminiMusicService } from "@villutur/gemini-ai-lib";
+
+const coverArt = await readFile("./reference-cover.jpg");
+const imagePart = GeminiAttachmentHelper.CreateFromBuffer(coverArt, "image/jpeg");
+
+const musicService = new GeminiMusicService({
+  apiKey: process.env.GEMINI_API_KEY,
+});
+
+const result = await musicService.generateMusicFromImage(
+  imagePart,
+  "Create warm cinematic music that matches the color and mood of the image.",
+  {
+    model: "lyria-3-pro-preview",
+  },
+);
+```
+
+Lyria RealTime is out of scope for this package surface today and is tracked in
+`docs/future-work.md`.
+
 For lightweight UI/model-picker usage without importing runtime services, you
 can also import model catalogs directly from the subpath entry:
 
@@ -338,10 +425,12 @@ can also import model catalogs directly from the subpath entry:
 import {
   GEMINI_TEXT_MODELS,
   GEMINI_AUDIO_MODELS,
+  GEMINI_MUSIC_MODELS,
   GEMINI_VIDEO_MODELS,
   GEMINI_IMAGE_MODELS,
   GEMINI_LIVE_MODELS,
   getAudioModelDisplayName,
+  getMusicModelDisplayName,
   getVideoModelDisplayName,
   getTextModelDisplayName,
   getLiveModelDisplayName,
@@ -354,6 +443,8 @@ Capability metadata is also available from a dedicated subpath entry:
 import {
   GEMINI_AUDIO_MODEL_CAPABILITIES,
   GEMINI_AUDIO_CONFIG_OPTIONS,
+  GEMINI_MUSIC_MODEL_CAPABILITIES,
+  GEMINI_MUSIC_CONFIG_OPTIONS,
   GEMINI_VIDEO_MODEL_CAPABILITIES,
   GEMINI_VIDEO_CONFIG_OPTIONS,
   GEMINI_IMAGE_MODEL_CAPABILITIES,
@@ -365,6 +456,9 @@ import {
   getAudioModelCapabilities,
   getAudioModelConfigOptions,
   getAudioModelSpeakerLimits,
+  getMusicModelAttachmentLimits,
+  getMusicModelCapabilities,
+  getMusicModelConfigOptions,
   getVideoModelAttachmentLimits,
   getVideoModelCapabilities,
   getVideoModelConfigOptions,

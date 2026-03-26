@@ -32,6 +32,13 @@ export const GEMINI_AUDIO_MODELS = ["gemini-2.5-flash-preview-tts", "gemini-2.5-
 export type KnownAudioGenerationModel = (typeof GEMINI_AUDIO_MODELS)[number];
 
 /**
+ * Shared list of music-generation Gemini models for consumer model pickers.
+ */
+export const GEMINI_MUSIC_MODELS = ["lyria-3-clip-preview", "lyria-3-pro-preview"] as const;
+
+export type KnownMusicGenerationModel = (typeof GEMINI_MUSIC_MODELS)[number];
+
+/**
  * Shared list of video-generation Gemini models for consumer model pickers.
  */
 export const GEMINI_VIDEO_MODELS = ["veo-3.1-generate-preview", "veo-3.1-fast-generate-preview"] as const;
@@ -79,6 +86,14 @@ export const GEMINI_AUDIO_MODEL_DISPLAY_NAMES: Record<KnownAudioGenerationModel,
 };
 
 /**
+ * User-facing labels for known music-generation models.
+ */
+export const GEMINI_MUSIC_MODEL_DISPLAY_NAMES: Record<KnownMusicGenerationModel, string> = {
+  "lyria-3-clip-preview": "Lyria 3 Clip Preview",
+  "lyria-3-pro-preview": "Lyria 3 Pro Preview",
+};
+
+/**
  * User-facing labels for known video-generation models.
  */
 export const GEMINI_VIDEO_MODEL_DISPLAY_NAMES: Record<KnownVideoGenerationModel, string> = {
@@ -119,6 +134,15 @@ export function getTextModelDisplayName(model: string): string {
  */
 export function getAudioModelDisplayName(model: string): string {
   return GEMINI_AUDIO_MODEL_DISPLAY_NAMES[model as KnownAudioGenerationModel] ?? model;
+}
+
+/**
+ * Convert a model id to a user-facing display label.
+ * Unknown models fall back to the raw model id so consumer UIs remain robust
+ * when custom or future model ids are used.
+ */
+export function getMusicModelDisplayName(model: string): string {
+  return GEMINI_MUSIC_MODEL_DISPLAY_NAMES[model as KnownMusicGenerationModel] ?? model;
 }
 
 /**

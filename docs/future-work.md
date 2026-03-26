@@ -33,6 +33,24 @@ Status labels:
       Related: `src/live.ts`
       Revisit when: The live-session architecture is far enough along that browser-direct auth becomes an active requirement rather than a hypothetical.
 
+- [ ] Add support for Lyria RealTime
+      Status: `Research`
+      Priority: `Medium`
+      Complexity: `High`
+      Why later: Lyria RealTime uses a separate streaming runtime and session model that should be designed deliberately instead of being mixed into the stable non-realtime music service.
+      Related: `src/live.ts`, `src/music.ts`
+      Revisit when: [Realtime music generation](https://ai.google.dev/gemini-api/docs/realtime-music-generation) becomes an active product requirement.
+
+## Music
+
+- [ ] Investigate support for richer non-realtime Lyria config from local draft docs
+      Status: `Research`
+      Priority: `Medium`
+      Complexity: `Medium`
+      Why later: The local `docs/models/lyria*` files describe richer controls such as `bpm`, `intensity`, `generateLyrics`, `vocalType`, `negativePrompt`, `seed`, and `enhancePrompt`, but the stable v1 runtime contract intentionally stays on the official `generateContent(...)` surface.
+      Related: `src/music.ts`, `src/model-capabilities.ts`, `docs/models/lyria-models-capabilities-and-config.md`
+      Revisit when: official Gemini docs or `@google/genai` expose a stable typed non-realtime config surface for those controls.
+
 ## Logging
 
 - [ ] Add correlation-friendly Gemini event metadata for app-owned log sinks
