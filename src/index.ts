@@ -1,5 +1,6 @@
 export * from "./base.js";
 export * from "./model-catalogs.js";
+export * from "./model-capabilities.js";
 export * from "./helpers.js";
 export * from "./text.js";
 export * from "./chat.js";

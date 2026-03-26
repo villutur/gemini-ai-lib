@@ -3,6 +3,18 @@ import type { FunctionCall, LiveConnectConfig, LiveServerMessage } from "@google
 import { GeminiBaseService } from "./base.js";
 import type { GeminiServiceOptions } from "./base.js";
 import { geminiLog } from "./logger.js";
+import {
+  GEMINI_LIVE_MODELS,
+  GEMINI_LIVE_MODEL_DISPLAY_NAMES,
+  getLiveModelDisplayName,
+  type KnownLiveGenerationModel,
+} from "./model-catalogs.js";
+
+/**
+ * Re-exported live-model catalogs and labels for convenience.
+ */
+export { GEMINI_LIVE_MODELS, GEMINI_LIVE_MODEL_DISPLAY_NAMES, getLiveModelDisplayName };
+export type { KnownLiveGenerationModel };
 
 /**
  * Definition for a function calling tool available in a live session.
@@ -45,7 +57,7 @@ export interface LiveChatSessionOptions extends GeminiServiceOptions {
   /** The name of the prebuilt voice to use (e.g., "Aoede", "Puck"). */
   voiceName?: string;
   /** The specific multimodal model version. */
-  model?: string;
+  model?: KnownLiveGenerationModel | string;
   /** A list of custom tools the model can choose to execute. */
   tools?: LiveToolDefinition[];
   /** Callback fired when the WebSocket connection is successfully opened. */

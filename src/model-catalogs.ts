@@ -25,6 +25,16 @@ export const GEMINI_TEXT_MODELS = [
 export type KnownTextGenerationModel = (typeof GEMINI_TEXT_MODELS)[number];
 
 /**
+ * Shared list of live-session Gemini models for real-time voice/video flows.
+ */
+export const GEMINI_LIVE_MODELS = [
+  "gemini-2.5-flash-native-audio-preview-12-2025",
+  "gemini-2.5-flash-native-audio-preview-09-2025",
+] as const;
+
+export type KnownLiveGenerationModel = (typeof GEMINI_LIVE_MODELS)[number];
+
+/**
  * User-facing labels for known image models.
  */
 export const GEMINI_IMAGE_MODEL_DISPLAY_NAMES: Record<KnownImageGenerationModel, string> = {
@@ -47,6 +57,14 @@ export const GEMINI_TEXT_MODEL_DISPLAY_NAMES: Record<KnownTextGenerationModel, s
 };
 
 /**
+ * User-facing labels for known live models.
+ */
+export const GEMINI_LIVE_MODEL_DISPLAY_NAMES: Record<KnownLiveGenerationModel, string> = {
+  "gemini-2.5-flash-native-audio-preview-12-2025": "Gemini 2.5 Flash Native Audio (12-2025)",
+  "gemini-2.5-flash-native-audio-preview-09-2025": "Gemini 2.5 Flash Native Audio (09-2025)",
+};
+
+/**
  * Convert a model id to a user-facing display label.
  * Unknown models fall back to the raw model id so consumer UIs remain robust
  * when custom or future model ids are used.
@@ -62,4 +80,13 @@ export function getImageModelDisplayName(model: string): string {
  */
 export function getTextModelDisplayName(model: string): string {
   return GEMINI_TEXT_MODEL_DISPLAY_NAMES[model as KnownTextGenerationModel] ?? model;
+}
+
+/**
+ * Convert a model id to a user-facing display label.
+ * Unknown models fall back to the raw model id so consumer UIs remain robust
+ * when custom or future model ids are used.
+ */
+export function getLiveModelDisplayName(model: string): string {
+  return GEMINI_LIVE_MODEL_DISPLAY_NAMES[model as KnownLiveGenerationModel] ?? model;
 }

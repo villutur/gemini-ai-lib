@@ -3,9 +3,6 @@
 Shared TypeScript wrappers around the Gemini SDK for use across the `vt`
 workspace.
 
-Within the workspace, the actively developed repositories are `vt-playground`,
-`vt-design-system`, `vt-asset-studio`, and `gemini-ai-lib`.
-
 ## Purpose
 
 - Keep reusable Gemini SDK wiring out of individual apps
@@ -29,12 +26,20 @@ Within the workspace, the actively developed repositories are `vt-playground`,
   buffers into Gemini `Part` objects
 - structured logging contracts and logger adapters for injecting app-owned
   sinks into Gemini request flows
-- `GeminiAudioService`, `GeminiImageService`, and `GeminiLiveService` for the
-  richer media and live surfaces already explored in the workspace
+- `GeminiAudioService`, `GeminiImageService`, and `GeminiLiveChatSession` for
+  richer media and live surfaces
 - `GEMINI_TEXT_MODELS`: shared text-model list for consumer model pickers
 - `GEMINI_TEXT_MODEL_DISPLAY_NAMES`: user-facing labels for known text models
 - `GEMINI_IMAGE_MODELS`: shared allowlist covering Gemini image models plus
   `imagen-4.0-generate-001`
+- `GEMINI_LIVE_MODELS`: shared live-model list for real-time voice/video flows
+- `GEMINI_LIVE_MODEL_DISPLAY_NAMES`: user-facing labels for known live models
+- `GEMINI_IMAGE_MODEL_CAPABILITIES`: model-aware image limits and supported
+  config options for dynamic UIs
+- `GEMINI_TEXT_MODEL_CAPABILITIES`: model-aware text limits and supported
+  config options for dynamic UIs
+- `GEMINI_LIVE_MODEL_CAPABILITIES`: model-aware live-session limits and
+  supported config options for dynamic UIs
 - model-aware image handling that keeps Gemini image-model requests on their
   native output path while still allowing explicit output format control for
   Imagen where the API supports it
@@ -57,25 +62,18 @@ const textService = new GeminiTextService({
   apiKey: process.env.GEMINI_API_KEY,
 });
 
-const response = await textService.generateTextString(
-  "Summarize the current rollout status in three bullets.",
-  {
-    model: "gemini-3-flash-preview",
-    systemInstruction:
-      "Answer like a pragmatic product engineer. Be concise and explicit.",
-    temperature: 0.4,
-  },
-);
+const response = await textService.generateTextString("Summarize the current rollout status in three bullets.", {
+  model: "gemini-3-flash-preview",
+  systemInstruction: "Answer like a pragmatic product engineer. Be concise and explicit.",
+  temperature: 0.4,
+});
 ```
 
 Persistent text chat can layer on top of `GeminiChatService` while still
 letting the consuming app own validation and request shaping.
 
 ```ts
-import {
-  createGeminiTextChatHistory,
-  GeminiChatService,
-} from "gemini-ai-lib";
+import { createGeminiTextChatHistory, GeminiChatService } from "gemini-ai-lib";
 
 const chatService = new GeminiChatService({
   apiKey: process.env.GEMINI_API_KEY,
@@ -92,19 +90,14 @@ const chatService = new GeminiChatService({
   ]),
 });
 
-const text = await chatService.sendMessageString(
-  "Now add the top two risks and a rollback trigger.",
-);
+const text = await chatService.sendMessageString("Now add the top two risks and a rollback trigger.");
 ```
 
 Apps can also inject their own structured logger adapter when they want Gemini
 request lifecycle events to land in an app-owned sink.
 
 ```ts
-import {
-  GeminiTextService,
-  type LoggerAdapter,
-} from "gemini-ai-lib";
+import { GeminiTextService, type LoggerAdapter } from "gemini-ai-lib";
 
 const logger: LoggerAdapter = {
   log(event) {
@@ -123,50 +116,70 @@ thinking-config and response-metadata helpers without giving up control of
 route contracts or storage.
 
 ```ts
-import {
-  createGeminiThinkingConfigForModel,
-  normalizeGeminiResponseMetadata,
-  GeminiTextService,
-} from "gemini-ai-lib";
+import { createGeminiThinkingConfigForModel, normalizeGeminiResponseMetadata, GeminiTextService } from "gemini-ai-lib";
 
 const service = new GeminiTextService({
   apiKey: process.env.GEMINI_API_KEY,
 });
 
-const result = await service.generateText(
-  "Compare the rollout risks in three bullets.",
-  {
-    model: "gemini-3.1-pro-preview",
-    thinkingConfig: createGeminiThinkingConfigForModel(
-      "gemini-3.1-pro-preview",
-      {
-        includeThoughts: false,
-      },
-    ),
-  },
-);
-
-const telemetry = normalizeGeminiResponseMetadata(result, {
+const result = await service.generateText("Compare the rollout risks in three bullets.", {
   model: "gemini-3.1-pro-preview",
-  modelLabel: "Gemini 3.1 Pro Preview",
-  thinkingMode: "balanced",
-  startedAt: new Date().toISOString(),
-  startedMs: Date.now(),
+  thinkingConfig: createGeminiThinkingConfigForModel("gemini-3.1-pro-preview", {
+    includeThoughts: false,
+  }),
 });
+
+const telemetry = normalizeGeminiResponseMetadata(result);
 ```
 
 Consumers can also render text-model selectors directly from shared exports:
 
 ```ts
-import {
-  GEMINI_TEXT_MODELS,
-  GEMINI_TEXT_MODEL_DISPLAY_NAMES,
-} from "gemini-ai-lib";
+import { GEMINI_TEXT_MODELS, GEMINI_TEXT_MODEL_DISPLAY_NAMES } from "gemini-ai-lib";
 
 const options = GEMINI_TEXT_MODELS.map((model) => ({
   value: model,
   label: GEMINI_TEXT_MODEL_DISPLAY_NAMES[model],
 }));
+```
+
+Live model pickers can use the same pattern:
+
+```ts
+import { GEMINI_LIVE_MODELS, getLiveModelDisplayName } from "gemini-ai-lib";
+
+const liveOptions = GEMINI_LIVE_MODELS.map((model) => ({
+  value: model,
+  label: getLiveModelDisplayName(model),
+}));
+```
+
+Consumers that need model-aware config dialogs (for example image-generation
+nodes in board/pipeline UIs) can build controls directly from capability and
+option exports:
+
+```ts
+import { getImageModelCapabilities, getImageModelConfigOptions } from "gemini-ai-lib";
+
+const modelId = "imagen-4.0-generate-001";
+const capabilities = getImageModelCapabilities(modelId);
+const optionDescriptors = getImageModelConfigOptions(modelId);
+
+// Example policy in app code:
+// max attachment slots = model limit - assets already wired from Style Merger
+const styleMergerAssetCount = 2;
+const maxReferenceImages = capabilities.attachmentLimits.maxReferenceImages ?? 0;
+const remainingAttachmentBudget = Math.max(0, maxReferenceImages - styleMergerAssetCount);
+```
+
+Live-session UIs can use the same capability pattern:
+
+```ts
+import { getLiveModelCapabilities, getLiveModelConfigOptions } from "gemini-ai-lib";
+
+const liveModel = "gemini-2.5-flash-native-audio-preview-12-2025";
+const liveCapabilities = getLiveModelCapabilities(liveModel);
+const liveOptions = getLiveModelConfigOptions(liveModel);
 ```
 
 For lightweight UI/model-picker usage without importing runtime services, you
@@ -176,8 +189,28 @@ can also import model catalogs directly from the subpath entry:
 import {
   GEMINI_TEXT_MODELS,
   GEMINI_IMAGE_MODELS,
+  GEMINI_LIVE_MODELS,
   getTextModelDisplayName,
+  getLiveModelDisplayName,
 } from "gemini-ai-lib/model-catalogs";
+```
+
+Capability metadata is also available from a dedicated subpath entry:
+
+```ts
+import {
+  GEMINI_IMAGE_MODEL_CAPABILITIES,
+  GEMINI_IMAGE_CONFIG_OPTIONS,
+  GEMINI_LIVE_MODEL_CAPABILITIES,
+  GEMINI_LIVE_CONFIG_OPTIONS,
+  GEMINI_TEXT_MODEL_CAPABILITIES,
+  GEMINI_TEXT_CONFIG_OPTIONS,
+  getLiveModelCapabilities,
+  getLiveModelFeatureFlags,
+  getImageModelAttachmentLimits,
+  getTextModelAttachmentLimits,
+  getTextModelCapabilities,
+} from "gemini-ai-lib/model-capabilities";
 ```
 
 Image-capable apps can also keep their own policy layer while reusing the
@@ -189,35 +222,26 @@ that behavior model-aware and only forwards explicit output-format controls to
 Imagen-style routes where they are actually supported.
 
 ```ts
-import {
-  GEMINI_IMAGE_MODELS,
-  GeminiImageService,
-} from "gemini-ai-lib";
+import { GEMINI_IMAGE_MODELS, GeminiImageService } from "gemini-ai-lib";
 
 const imageService = new GeminiImageService({
   apiKey: process.env.GEMINI_API_KEY,
 });
 
-const result = await imageService.generateImageFromPrompt(
-  "Create a clean workspace logo with bold geometry.",
-  {
-    model: "gemini-3.1-flash-image-preview",
-    aspectRatio: "1:1",
-  },
-);
+const result = await imageService.generateImageFromPrompt("Create a clean workspace logo with bold geometry.", {
+  model: "gemini-3.1-flash-image-preview",
+  aspectRatio: "1:1",
+});
 ```
 
 If you need explicit output-format control, use an Imagen-capable model:
 
 ```ts
-const result = await imageService.generateImageFromPrompt(
-  "Create a clean workspace logo with bold geometry.",
-  {
-    model: "imagen-4.0-generate-001",
-    aspectRatio: "1:1",
-    outputMimeType: "image/png",
-  },
-);
+const result = await imageService.generateImageFromPrompt("Create a clean workspace logo with bold geometry.", {
+  model: "imagen-4.0-generate-001",
+  aspectRatio: "1:1",
+  outputMimeType: "image/png",
+});
 ```
 
 ## Environment Guidance
@@ -243,6 +267,8 @@ official Gemini model index as the source of truth:
 
 - Import from the package name, not from `src/` or sibling repo paths.
 - Keep generic Gemini SDK concerns here.
+- This library exports model limits and config-option metadata; consuming apps
+  still own final UI policy, validation, and product-specific constraints.
 - Keep reusable history shaping and portable chat-session helpers here when
   they are app-agnostic.
 - Keep logger contracts and lifecycle emission generic here, while letting the
@@ -268,6 +294,12 @@ Run watch mode:
 
 ```bash
 pnpm dev
+```
+
+Run typecheck only:
+
+```bash
+pnpm typecheck
 ```
 
 ## Repository Notes
