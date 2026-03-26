@@ -1,7 +1,29 @@
 {
-  "name": "gemini-ai-lib",
+  "name": "@villutur/gemini-ai-lib",
   "version": "0.1.0",
-  "private": true,
+  "private": false,
+  "description": "Reusable TypeScript wrappers and helpers for Google's Gemini API.",
+  "author": "Villu Tur",
+  "license": "MIT",
+  "keywords": [
+    "gemini",
+    "google-genai",
+    "ai",
+    "typescript",
+    "sdk",
+    "multimodal"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/villutur/gemini-ai-lib.git"
+  },
+  "bugs": {
+    "url": "https://github.com/villutur/gemini-ai-lib/issues"
+  },
+  "homepage": "https://github.com/villutur/gemini-ai-lib#readme",
+  "publishConfig": {
+    "access": "public"
+  },
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -34,6 +56,9 @@
     "dev": "tsup --watch",
     "build2": "tsc -p tsconfig.json",
     "typecheck": "tsc --noEmit",
+    "release:bump": "node ./scripts/release-bump.mjs",
+    "release:pack": "npm pack --dry-run",
+    "release:publish": "npm publish --access public",
     "dev2": "tsc -p tsconfig.json --watch",
     "prettyfy": "prettier --write \"src/**/*.{js,jsx,mjs,cjs,ts,tsx,json}\""
   },

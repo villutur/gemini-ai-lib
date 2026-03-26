@@ -47,7 +47,7 @@ workspace.
 ## Installation
 
 ```bash
-pnpm add gemini-ai-lib
+pnpm add @villutur/gemini-ai-lib
 ```
 
 ## Usage
@@ -56,7 +56,7 @@ Server-side consumption is the default and preferred path for application
 repos such as `vt-playground`.
 
 ```ts
-import { GeminiTextService } from "gemini-ai-lib";
+import { GeminiTextService } from "@villutur/gemini-ai-lib";
 
 const textService = new GeminiTextService({
   apiKey: process.env.GEMINI_API_KEY,
@@ -73,7 +73,7 @@ Persistent text chat can layer on top of `GeminiChatService` while still
 letting the consuming app own validation and request shaping.
 
 ```ts
-import { createGeminiTextChatHistory, GeminiChatService } from "gemini-ai-lib";
+import { createGeminiTextChatHistory, GeminiChatService } from "@villutur/gemini-ai-lib";
 
 const chatService = new GeminiChatService({
   apiKey: process.env.GEMINI_API_KEY,
@@ -97,7 +97,7 @@ Apps can also inject their own structured logger adapter when they want Gemini
 request lifecycle events to land in an app-owned sink.
 
 ```ts
-import { GeminiTextService, type LoggerAdapter } from "gemini-ai-lib";
+import { GeminiTextService, type LoggerAdapter } from "@villutur/gemini-ai-lib";
 
 const logger: LoggerAdapter = {
   log(event) {
@@ -116,7 +116,7 @@ thinking-config and response-metadata helpers without giving up control of
 route contracts or storage.
 
 ```ts
-import { createGeminiThinkingConfigForModel, normalizeGeminiResponseMetadata, GeminiTextService } from "gemini-ai-lib";
+import { createGeminiThinkingConfigForModel, normalizeGeminiResponseMetadata, GeminiTextService } from "@villutur/gemini-ai-lib";
 
 const service = new GeminiTextService({
   apiKey: process.env.GEMINI_API_KEY,
@@ -135,7 +135,7 @@ const telemetry = normalizeGeminiResponseMetadata(result);
 Consumers can also render text-model selectors directly from shared exports:
 
 ```ts
-import { GEMINI_TEXT_MODELS, GEMINI_TEXT_MODEL_DISPLAY_NAMES } from "gemini-ai-lib";
+import { GEMINI_TEXT_MODELS, GEMINI_TEXT_MODEL_DISPLAY_NAMES } from "@villutur/gemini-ai-lib";
 
 const options = GEMINI_TEXT_MODELS.map((model) => ({
   value: model,
@@ -146,7 +146,7 @@ const options = GEMINI_TEXT_MODELS.map((model) => ({
 Live model pickers can use the same pattern:
 
 ```ts
-import { GEMINI_LIVE_MODELS, getLiveModelDisplayName } from "gemini-ai-lib";
+import { GEMINI_LIVE_MODELS, getLiveModelDisplayName } from "@villutur/gemini-ai-lib";
 
 const liveOptions = GEMINI_LIVE_MODELS.map((model) => ({
   value: model,
@@ -159,7 +159,7 @@ nodes in board/pipeline UIs) can build controls directly from capability and
 option exports:
 
 ```ts
-import { getImageModelCapabilities, getImageModelConfigOptions } from "gemini-ai-lib";
+import { getImageModelCapabilities, getImageModelConfigOptions } from "@villutur/gemini-ai-lib";
 
 const modelId = "imagen-4.0-generate-001";
 const capabilities = getImageModelCapabilities(modelId);
@@ -175,7 +175,7 @@ const remainingAttachmentBudget = Math.max(0, maxReferenceImages - styleMergerAs
 Live-session UIs can use the same capability pattern:
 
 ```ts
-import { getLiveModelCapabilities, getLiveModelConfigOptions } from "gemini-ai-lib";
+import { getLiveModelCapabilities, getLiveModelConfigOptions } from "@villutur/gemini-ai-lib";
 
 const liveModel = "gemini-2.5-flash-native-audio-preview-12-2025";
 const liveCapabilities = getLiveModelCapabilities(liveModel);
@@ -192,7 +192,7 @@ import {
   GEMINI_LIVE_MODELS,
   getTextModelDisplayName,
   getLiveModelDisplayName,
-} from "gemini-ai-lib/model-catalogs";
+} from "@villutur/gemini-ai-lib/model-catalogs";
 ```
 
 Capability metadata is also available from a dedicated subpath entry:
@@ -210,7 +210,7 @@ import {
   getImageModelAttachmentLimits,
   getTextModelAttachmentLimits,
   getTextModelCapabilities,
-} from "gemini-ai-lib/model-capabilities";
+} from "@villutur/gemini-ai-lib/model-capabilities";
 ```
 
 Image-capable apps can also keep their own policy layer while reusing the
@@ -222,7 +222,7 @@ that behavior model-aware and only forwards explicit output-format controls to
 Imagen-style routes where they are actually supported.
 
 ```ts
-import { GEMINI_IMAGE_MODELS, GeminiImageService } from "gemini-ai-lib";
+import { GEMINI_IMAGE_MODELS, GeminiImageService } from "@villutur/gemini-ai-lib";
 
 const imageService = new GeminiImageService({
   apiKey: process.env.GEMINI_API_KEY,
@@ -301,6 +301,18 @@ Run typecheck only:
 ```bash
 pnpm typecheck
 ```
+
+## Release Workflow
+
+This package uses a repo-safe manual release flow:
+
+```bash
+pnpm release:bump --patch
+pnpm release:publish
+```
+
+Full release instructions, rollback guidance, and safety checks are documented
+in [docs/release.md](docs/release.md).
 
 ## Repository Notes
 
