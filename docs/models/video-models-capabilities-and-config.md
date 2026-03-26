@@ -130,4 +130,3 @@ export const formatVeoApiPayload = (modelId: string, config: any) => {
 2. **Image-to-Video:** If an image is provided, the model treats it as the **first frame**. If two images are provided, it can perform an **interpolation/transition** between them.
 3. **The "Fast" Trade-off:** In your UI, note that while the visual quality of "Fast" is nearly identical to "Standard," complex liquid physics or fine hair textures are better handled by the non-fast version.
 
-**Would you like me to create the code for a "Video Extension" UI, which allows the user to chain 8-second clips together using the Veo 3.1 Extend API?**

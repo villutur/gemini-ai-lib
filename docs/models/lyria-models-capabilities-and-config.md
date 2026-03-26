@@ -133,4 +133,3 @@ export const formatLyriaApiPayload = (modelId: string, config: any, imageBase64?
 * **Lyrics Synchronization:** If `generate_lyrics` is true, the API returns a `lyrics_timestamps` object alongside the audio, allowing you to build a "karaoke-style" UI.
 * **SynthID Watermarking:** Note that all audio contains a non-audible watermark. Post-processing or heavy compression can sometimes degrade the watermark, but it is highly robust to basic editing.
 
-Would you like me to create a **"Prompt Architect" component** that helps users build a structured song prompt using those [Verse] and [Chorus] tags?

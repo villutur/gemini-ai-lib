@@ -107,4 +107,3 @@ Since Lyria 3 uses an internal **Gemini 3 Flash** rewriter to expand your prompt
 
 * **Best Practice:** Always use the `lyrics_segments` returned by the API for your UI, rather than the original text you sent in the prompt, to ensure 100% sync accuracy.
 
-Would you like me to create a **custom CSS animation** that makes the highlighted word "glow" or "bounce" in time with the music's `intensity` parameter?

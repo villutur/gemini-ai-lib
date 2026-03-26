@@ -194,4 +194,3 @@ export const formatApiPayload = (modelId: string, config: any) => {
 - **Thought Signatures:** If you are building a chat interface, remember that Gemini 3.x responses often include a `thoughtSignature`. You **must** include this signature in the next turn of the conversation (within the `Model` part) to maintain reasoning continuity, even if `thinkingLevel` is set to `minimal`.
 - **Temperature Lock:** In your UI, you might consider disabling the temperature slider for Gemini 3.x models or adding a warning, as they are calibrated heavily toward `1.0`.
 
-**Would you like me to add the logic for handling "Thought Signatures" in the chat history state?**

@@ -126,4 +126,3 @@ export const formatTTSApiPayload = (modelId: string, config: any) => {
 * **SSML Support:** Both models support standard SSML (Speech Synthesis Markup Language) for fine control over breaks `<break time="500ms"/>` and phonemes.
 * **Pro vs. Flash Nuance:** While Flash is great for literal reading, Pro is significantly better at "acting"—it understands when a sentence should sound like a question or a sarcastic remark based solely on the text.
 
-Would you like me to generate a **Multi-Speaker Configuration Object** that shows how to map two different voices to a script with multiple characters?

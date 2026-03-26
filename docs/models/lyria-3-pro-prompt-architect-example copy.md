@@ -95,4 +95,3 @@ If the user also provides a lyrics script, you should interleave the structural 
 
 > **Note on 2026 Quotas:** Remember that `lyria-3-pro-preview` consumes significantly more compute credits than the `clip` version due to the complexity of the structural awareness and 180-second window.
 
-Would you like me to show you how to handle the **JSON response for lyrics timestamps** so you can highlight the words in the UI as the music plays?

@@ -118,7 +118,5 @@ export const formatLiveSetupMessage = (config: LiveModelConfig) => {
 };
 ```
 
-**Would you like me to provide the code for the AudioWorklet needed to handle the 16kHz input / 24kHz output streaming in the browser?**
-
 [Gemini Live API Voice and Vision Setup](https://www.google.com/search?q=https://www.youtube.com/watch%3Fv%3D03n_4aKOfi0)
 This video provides a practical walkthrough of setting up the Gemini Live API, including the real-time audio and vision configurations discussed above.

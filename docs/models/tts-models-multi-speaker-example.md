@@ -90,4 +90,3 @@ export const formatTTSApiPayload = (modelId: string, config: any) => {
 * **Token Efficiency:** Multi-speaker setups do not increase the token count significantly, but ensure your `speaker_label` in the config exactly matches the name used in the text (case-sensitive).
 * **Silence/Gaps:** To add natural pauses between speakers, use the SSML `<break time="1s"/>` tag within the text block of the speaker who just finished.
 
-Would you like me to provide a **sample React component** that lets users assign different voices to a list of detected speaker names from their script?

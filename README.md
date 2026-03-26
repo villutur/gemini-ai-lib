@@ -3,6 +3,15 @@
 Reusable TypeScript wrappers around the Gemini SDK for applications, tools,
 and libraries that want a cleaner typed integration surface.
 
+This is my Gemini AI library/helper that I use in my own projects. I am
+sharing it in case someone else finds it useful.
+
+If you want a very basic place to try the current functionality and see
+implementation examples, take a look at
+[gemini-ai-lib-playground](https://github.com/villutur/gemini-ai-lib-playground).
+
+PRs are welcome.
+
 ## Purpose
 
 - Keep reusable Gemini SDK wiring out of individual projects
