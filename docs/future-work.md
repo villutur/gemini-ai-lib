@@ -51,6 +51,24 @@ Status labels:
       Related: `src/music.ts`, `src/model-capabilities.ts`, `docs/models/lyria-models-capabilities-and-config.md`
       Revisit when: official Gemini docs or `@google/genai` expose a stable typed non-realtime config surface for those controls.
 
+## Embeddings
+
+- [ ] Investigate Vertex-only embedding options
+      Status: `Research`
+      Priority: `Medium`
+      Complexity: `Medium`
+      Why later: The stable embedding service intentionally stays on the Gemini API config surface and does not expose Vertex-only controls such as `mimeType` and `autoTruncate`.
+      Related: `src/embedding.ts`, `src/model-capabilities.ts`
+      Revisit when: Vertex support becomes an explicit package requirement.
+
+- [ ] Add Batch API helpers for high-throughput embedding workflows
+      Status: `Planned`
+      Priority: `Medium`
+      Complexity: `Medium`
+      Why later: The initial embedding service focuses on the standard `embedContent(...)` path. Batch API support should be added deliberately if consumers need higher-throughput indexing workflows.
+      Related: `src/embedding.ts`, `README.md`, `docs/models/embedding-google-official-docs.md`
+      Revisit when: a consuming project needs large-scale indexing throughput or scheduled batch embedding jobs.
+
 ## Logging
 
 - [ ] Add correlation-friendly Gemini event metadata for app-owned log sinks
@@ -67,7 +85,7 @@ Status labels:
       Status: `Planned`
       Priority: `Medium`
       Complexity: `Medium`
-      Why later: The library now exports model and config metadata for text, image, audio, video, and live flows, but the repository still relies on build and typecheck rather than automated contract tests to catch metadata drift.
+      Why later: The library now exports model and config metadata for text, embeddings, image, audio, music, video, and live flows, but the repository still relies on build and typecheck rather than automated contract tests to catch metadata drift.
       Related: `src/model-catalogs.ts`, `src/model-capabilities.ts`, `src/audio.ts`, `src/video.ts`, `README.md`
       Revisit when: The next metadata update lands or a lightweight test harness is introduced.
 

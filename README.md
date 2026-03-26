@@ -6,8 +6,8 @@ and libraries that want a cleaner typed integration surface.
 ## Purpose
 
 - Keep reusable Gemini SDK wiring out of individual projects
-- Provide small, composable services for text, chat, image, music, audio,
-  video, and live workflows
+- Provide small, composable services for text, embeddings, chat, image, music,
+  audio, video, and live workflows
 - Let consuming projects own app-specific validation, model allowlists, route
   contracts, and user-facing error handling
 
@@ -16,6 +16,7 @@ and libraries that want a cleaner typed integration surface.
 - `GeminiBaseService`: shared client setup, API key resolution, and tool
   configuration
 - `GeminiTextService`: one-shot text generation helpers
+- `GeminiEmbeddingService`: text and multimodal embedding helpers
 - `GeminiChatService`: persistent multi-turn chat wrapper
 - `GeminiAudioService`: text-to-speech generation helpers
 - `GeminiMusicService`: non-realtime Lyria music generation helpers
@@ -36,6 +37,10 @@ and libraries that want a cleaner typed integration surface.
   sinks into Gemini request flows
 - `GEMINI_TEXT_MODELS`: shared text-model list for consumer model pickers
 - `GEMINI_TEXT_MODEL_DISPLAY_NAMES`: user-facing labels for known text models
+- `GEMINI_EMBEDDING_MODELS`: shared embedding-model list for consumer model
+  pickers
+- `GEMINI_EMBEDDING_MODEL_DISPLAY_NAMES`: user-facing labels for known
+  embedding models
 - `GEMINI_AUDIO_MODELS`: shared audio/TTS model list for consumer model
   pickers
 - `GEMINI_AUDIO_MODEL_DISPLAY_NAMES`: user-facing labels for known audio/TTS
@@ -56,6 +61,8 @@ and libraries that want a cleaner typed integration surface.
   config options for dynamic UIs
 - `GEMINI_TEXT_MODEL_CAPABILITIES`: model-aware text limits and supported
   config options for dynamic UIs
+- `GEMINI_EMBEDDING_MODEL_CAPABILITIES`: model-aware embedding limits and
+  supported config options for dynamic UIs
 - `GEMINI_AUDIO_MODEL_CAPABILITIES`: model-aware audio/TTS limits and
   supported config options for dynamic UIs
 - `GEMINI_MUSIC_MODEL_CAPABILITIES`: model-aware music limits and supported
@@ -87,6 +94,11 @@ model IDs below.
 - `gemini-3-flash-preview`
 - `gemini-3.1-flash-lite-preview`
 - `gemini-3.1-pro-preview`
+
+### Embeddings
+
+- `gemini-embedding-001`
+- `gemini-embedding-2-preview`
 
 ### Image
 
@@ -216,6 +228,17 @@ const options = GEMINI_TEXT_MODELS.map((model) => ({
 }));
 ```
 
+Embedding model pickers can use the same pattern:
+
+```ts
+import { GEMINI_EMBEDDING_MODELS, getEmbeddingModelDisplayName } from "@villutur/gemini-ai-lib";
+
+const embeddingOptions = GEMINI_EMBEDDING_MODELS.map((model) => ({
+  value: model,
+  label: getEmbeddingModelDisplayName(model),
+}));
+```
+
 Audio/TTS model pickers can use the same pattern:
 
 ```ts
@@ -276,6 +299,24 @@ const reservedAttachmentSlots = 2;
 const maxReferenceImages = capabilities.attachmentLimits.maxReferenceImages ?? 0;
 const remainingAttachmentBudget = Math.max(0, maxReferenceImages - reservedAttachmentSlots);
 ```
+
+Embedding consumers can also drive model-aware retrieval controls from shared
+capability exports:
+
+```ts
+import { getEmbeddingModelCapabilities, getEmbeddingModelConfigOptions } from "@villutur/gemini-ai-lib";
+
+const embeddingModel = "gemini-embedding-2-preview";
+const embeddingCapabilities = getEmbeddingModelCapabilities(embeddingModel);
+const embeddingOptionDescriptors = getEmbeddingModelConfigOptions(embeddingModel);
+
+const supportsMultimodalRetrieval = embeddingCapabilities.inputLimits.supportsMultimodalInput;
+const recommendedDimensions = embeddingCapabilities.outputLimits.recommendedOutputDimensions;
+```
+
+Embedding support in v1 uses the stable Gemini API `embedContent(...)` flow.
+Vertex-only options such as `mimeType` and `autoTruncate` are intentionally not
+part of the typed runtime API.
 
 Audio/TTS consumers can also drive their config controls from model-aware
 capability exports:
@@ -373,6 +414,77 @@ const liveSession = new GeminiLiveChatSession({
 await liveSession.connect("Say hello and ask how you can help.");
 ```
 
+Embedding generation supports both text-only and multimodal inputs:
+
+```ts
+import { GeminiEmbeddingService } from "@villutur/gemini-ai-lib";
+
+const embeddingService = new GeminiEmbeddingService({
+  apiKey: process.env.GEMINI_API_KEY,
+});
+
+const result = await embeddingService.embedText("How do I build a robust semantic search index?", {
+  model: "gemini-embedding-001",
+  taskType: "RETRIEVAL_QUERY",
+  outputDimensionality: 768,
+});
+
+const firstVector = result.embedding;
+```
+
+You can also embed multiple text entries in one request:
+
+```ts
+const batchResult = await embeddingService.embedTexts(
+  [
+    "What is the meaning of life?",
+    "What is the purpose of existence?",
+    "How do I bake a cake?",
+  ],
+  {
+    model: "gemini-embedding-001",
+    taskType: "SEMANTIC_SIMILARITY",
+  },
+);
+
+const vectors = batchResult.embeddings;
+```
+
+`gemini-embedding-2-preview` also supports multimodal embedding. One content
+entry with multiple parts returns one aggregated embedding, while multiple
+entries return multiple embeddings:
+
+```ts
+import { GeminiAttachmentHelper, GeminiEmbeddingService } from "@villutur/gemini-ai-lib";
+import { readFile } from "node:fs/promises";
+
+const imageBuffer = await readFile("./dog.png");
+const imagePart = GeminiAttachmentHelper.CreateFromBuffer(imageBuffer, "image/png");
+
+const embeddingService = new GeminiEmbeddingService({
+  apiKey: process.env.GEMINI_API_KEY,
+});
+
+const result = await embeddingService.embedContent(
+  {
+    parts: [{ text: "An image of a dog" }, imagePart],
+  },
+  {
+    model: "gemini-embedding-2-preview",
+    taskType: "RETRIEVAL_DOCUMENT",
+    outputDimensionality: 1536,
+  },
+);
+
+const aggregatedVector = result.embedding;
+```
+
+Reduced dimensions such as `768` and `1536` can be a strong storage/latency
+tradeoff, but consumer-side normalization may still be appropriate for
+similarity-focused use cases. Switching between `gemini-embedding-001` and
+`gemini-embedding-2-preview` requires reindexing because the vector spaces are
+not interchangeable.
+
 Music generation uses Lyria through the stable `generateContent(...)` path:
 
 ```ts
@@ -424,11 +536,13 @@ can also import model catalogs directly from the subpath entry:
 ```ts
 import {
   GEMINI_TEXT_MODELS,
+  GEMINI_EMBEDDING_MODELS,
   GEMINI_AUDIO_MODELS,
   GEMINI_MUSIC_MODELS,
   GEMINI_VIDEO_MODELS,
   GEMINI_IMAGE_MODELS,
   GEMINI_LIVE_MODELS,
+  getEmbeddingModelDisplayName,
   getAudioModelDisplayName,
   getMusicModelDisplayName,
   getVideoModelDisplayName,
@@ -441,6 +555,8 @@ Capability metadata is also available from a dedicated subpath entry:
 
 ```ts
 import {
+  GEMINI_EMBEDDING_MODEL_CAPABILITIES,
+  GEMINI_EMBEDDING_CONFIG_OPTIONS,
   GEMINI_AUDIO_MODEL_CAPABILITIES,
   GEMINI_AUDIO_CONFIG_OPTIONS,
   GEMINI_MUSIC_MODEL_CAPABILITIES,
@@ -453,6 +569,9 @@ import {
   GEMINI_LIVE_CONFIG_OPTIONS,
   GEMINI_TEXT_MODEL_CAPABILITIES,
   GEMINI_TEXT_CONFIG_OPTIONS,
+  getEmbeddingModelCapabilities,
+  getEmbeddingModelConfigOptions,
+  getEmbeddingModelInputLimits,
   getAudioModelCapabilities,
   getAudioModelConfigOptions,
   getAudioModelSpeakerLimits,

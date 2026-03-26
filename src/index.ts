@@ -3,6 +3,7 @@ export * from "./model-catalogs.js";
 export * from "./model-capabilities.js";
 export * from "./helpers.js";
 export * from "./text.js";
+export * from "./embedding.js";
 export * from "./chat.js";
 export * from "./audio.js";
 export * from "./music.js";

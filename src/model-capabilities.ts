@@ -1,4 +1,5 @@
 import type { GenerateAudioOptions } from "./audio.js";
+import type { GenerateEmbeddingOptions, GeminiEmbeddingTaskType } from "./embedding.js";
 import type { GenerateImageOptions, GeminiFlashAspectRatio, GeminiImageSize } from "./image.js";
 import type { LiveChatSessionOptions } from "./live.js";
 import type { GenerateMusicOptions } from "./music.js";
@@ -11,12 +12,14 @@ import type {
 } from "./video.js";
 import {
   GEMINI_AUDIO_MODELS,
+  GEMINI_EMBEDDING_MODELS,
   GEMINI_IMAGE_MODELS,
   GEMINI_LIVE_MODELS,
   GEMINI_MUSIC_MODELS,
   GEMINI_TEXT_MODELS,
   GEMINI_VIDEO_MODELS,
   type KnownAudioGenerationModel,
+  type KnownEmbeddingModel,
   type KnownImageGenerationModel,
   type KnownLiveGenerationModel,
   type KnownMusicGenerationModel,
@@ -42,7 +45,7 @@ export type GeminiCapabilitySource = "catalog" | "fallback";
 export type GeminiConfigOptionKind = "string" | "number" | "boolean" | "array" | "object";
 
 /**
- * Shared descriptor shape used by image/text/audio/music/video/live config option catalogs.
+ * Shared descriptor shape used by image/text/embedding/audio/music/video/live config option catalogs.
  * Consumers can use this to render generic model configuration controls.
  */
 export interface GeminiConfigOptionDescriptor<TKey extends string = string> {
@@ -116,6 +119,12 @@ export type GeminiTextConfigOptionKey =
   | "responseMimeType"
   | "responseSchema"
   | "thinkingConfig";
+
+/**
+ * Embedding option keys exported for dynamic UI/config generation.
+ * These keys map to `GenerateEmbeddingOptions`.
+ */
+export type GeminiEmbeddingConfigOptionKey = "taskType" | "title" | "outputDimensionality";
 
 /**
  * Audio/TTS option keys exported for dynamic UI/config generation.
@@ -321,6 +330,114 @@ export interface GeminiTextModelCapabilities {
    * Which config keys are intentionally unsupported for this model.
    */
   unsupportedOptions: readonly GeminiTextConfigOptionKey[];
+}
+
+/**
+ * Input constraints for Gemini embedding models.
+ */
+export interface GeminiEmbeddingInputLimits {
+  /**
+   * Whether plain text input is supported.
+   */
+  supportsTextInput: boolean;
+  /**
+   * Whether multimodal input is supported.
+   */
+  supportsMultimodalInput: boolean;
+  /**
+   * Input modalities supported by the selected embedding model.
+   */
+  supportedInputModalities: readonly string[];
+  /**
+   * Maximum text-token budget when documented.
+   * Null means unknown.
+   */
+  maxInputTokens: number | null;
+  /**
+   * Maximum number of images per request when documented.
+   * Null means not supported or unknown.
+   */
+  maxImagesPerRequest: number | null;
+  /**
+   * Maximum audio duration in seconds when documented.
+   * Null means not supported or unknown.
+   */
+  maxAudioDurationSeconds: number | null;
+  /**
+   * Maximum video duration in seconds when documented.
+   * Null means not supported or unknown.
+   */
+  maxVideoDurationSeconds: number | null;
+  /**
+   * Maximum number of PDF pages when documented.
+   * Null means not supported or unknown.
+   */
+  maxPdfPages: number | null;
+}
+
+/**
+ * Output constraints for Gemini embedding models.
+ */
+export interface GeminiEmbeddingOutputLimits {
+  /**
+   * Default embedding dimensionality returned by the model when no truncation
+   * is requested.
+   */
+  defaultDimensions: number | null;
+  /**
+   * Lowest supported embedding dimensionality when known.
+   */
+  minOutputDimensions: number | null;
+  /**
+   * Highest supported embedding dimensionality when known.
+   */
+  maxOutputDimensions: number | null;
+  /**
+   * Recommended dimensionality values for common consumer use cases.
+   */
+  recommendedOutputDimensions: readonly number[];
+}
+
+/**
+ * Canonical capability payload for embedding models.
+ */
+export interface GeminiEmbeddingModelCapabilities {
+  /**
+   * Raw model id requested by the caller.
+   */
+  model: string;
+  /**
+   * True when the model exists in the known embedding model catalog.
+   */
+  isKnownModel: boolean;
+  /**
+   * Indicates whether this record comes from catalog data or a fallback.
+   */
+  source: GeminiCapabilitySource;
+  /**
+   * Input constraints and supported modalities for the embedding request.
+   */
+  inputLimits: GeminiEmbeddingInputLimits;
+  /**
+   * Output vector sizing constraints for the embedding request.
+   */
+  outputLimits: GeminiEmbeddingOutputLimits;
+  /**
+   * Task-type values documented for the selected embedding model.
+   */
+  supportedTaskTypes: readonly GeminiEmbeddingTaskType[];
+  /**
+   * Which config keys are available for this model.
+   */
+  supportedOptions: readonly GeminiEmbeddingConfigOptionKey[];
+  /**
+   * Which config keys are intentionally unsupported for this model.
+   */
+  unsupportedOptions: readonly GeminiEmbeddingConfigOptionKey[];
+  /**
+   * Additional implementation notes consumers should keep in mind.
+   */
+  notes: readonly string[];
 }
 
 /**
@@ -842,6 +959,60 @@ export const GEMINI_TEXT_CONFIG_OPTIONS: Record<
 };
 
 /**
+ * Complete embedding config option catalog.
+ * Consumers can filter this per model with `getEmbeddingModelConfigOptions(...)`.
+ */
+export const GEMINI_EMBEDDING_CONFIG_OPTIONS: Record<
+  GeminiEmbeddingConfigOptionKey,
+  GeminiConfigOptionDescriptor<GeminiEmbeddingConfigOptionKey>
+> = {
+  /**
+   * Task type used to optimize embeddings for a specific downstream task.
+   */
+  taskType: {
+    key: "taskType",
+    label: "Task type",
+    description: "Optimizes embeddings for retrieval, similarity, classification, clustering, and related tasks.",
+    kind: "string",
+    allowedValues: [
+      "RETRIEVAL_QUERY",
+      "RETRIEVAL_DOCUMENT",
+      "SEMANTIC_SIMILARITY",
+      "CLASSIFICATION",
+      "CLUSTERING",
+      "CODE_RETRIEVAL_QUERY",
+      "QUESTION_ANSWERING",
+      "FACT_VERIFICATION",
+    ],
+    defaultValue: "RETRIEVAL_QUERY",
+  },
+  /**
+   * Optional document title used primarily for retrieval-document embeddings.
+   */
+  title: {
+    key: "title",
+    label: "Title",
+    description: "Supplies an optional title, primarily useful for RETRIEVAL_DOCUMENT embeddings.",
+    kind: "string",
+    note: "Only meaningfully applies to document-style embeddings such as RETRIEVAL_DOCUMENT.",
+  },
+  /**
+   * Matryoshka-based output vector truncation size.
+   */
+  outputDimensionality: {
+    key: "outputDimensionality",
+    label: "Output dimensionality",
+    description: "Reduces embedding vector size using Matryoshka truncation where the model supports it.",
+    kind: "number",
+    min: 128,
+    max: 3072,
+    step: 1,
+    defaultValue: 3072,
+    note: "Recommended values from the official docs are 768, 1536, and 3072. Smaller dimensions may require consumer-side normalization for similarity use cases.",
+  },
+};
+
+/**
  * Complete audio/TTS config option catalog.
  * Consumers can filter this per model with `getAudioModelConfigOptions(...)`.
  */
@@ -1154,6 +1325,7 @@ export const GEMINI_LIVE_CONFIG_OPTIONS: Record<
 
 const IMAGE_OPTION_KEYS = Object.keys(GEMINI_IMAGE_CONFIG_OPTIONS) as GeminiImageConfigOptionKey[];
 const TEXT_OPTION_KEYS = Object.keys(GEMINI_TEXT_CONFIG_OPTIONS) as GeminiTextConfigOptionKey[];
+const EMBEDDING_OPTION_KEYS = Object.keys(GEMINI_EMBEDDING_CONFIG_OPTIONS) as GeminiEmbeddingConfigOptionKey[];
 const AUDIO_OPTION_KEYS = Object.keys(GEMINI_AUDIO_CONFIG_OPTIONS) as GeminiAudioConfigOptionKey[];
 const MUSIC_OPTION_KEYS = Object.keys(GEMINI_MUSIC_CONFIG_OPTIONS) as GeminiMusicConfigOptionKey[];
 const VIDEO_OPTION_KEYS = Object.keys(GEMINI_VIDEO_CONFIG_OPTIONS) as GeminiVideoConfigOptionKey[];
@@ -1385,6 +1557,77 @@ const KNOWN_TEXT_MODEL_CAPABILITIES: Record<KnownTextGenerationModel, GeminiText
   },
 };
 
+const EMBEDDING_TASK_TYPES: readonly GeminiEmbeddingTaskType[] = [
+  "RETRIEVAL_QUERY",
+  "RETRIEVAL_DOCUMENT",
+  "SEMANTIC_SIMILARITY",
+  "CLASSIFICATION",
+  "CLUSTERING",
+  "CODE_RETRIEVAL_QUERY",
+  "QUESTION_ANSWERING",
+  "FACT_VERIFICATION",
+];
+
+const KNOWN_EMBEDDING_MODEL_CAPABILITIES: Record<KnownEmbeddingModel, GeminiEmbeddingModelCapabilities> = {
+  "gemini-embedding-001": {
+    model: "gemini-embedding-001",
+    isKnownModel: true,
+    source: "catalog",
+    inputLimits: {
+      supportsTextInput: true,
+      supportsMultimodalInput: false,
+      supportedInputModalities: ["text"],
+      maxInputTokens: 2048,
+      maxImagesPerRequest: null,
+      maxAudioDurationSeconds: null,
+      maxVideoDurationSeconds: null,
+      maxPdfPages: null,
+    },
+    outputLimits: {
+      defaultDimensions: 3072,
+      minOutputDimensions: 128,
+      maxOutputDimensions: 3072,
+      recommendedOutputDimensions: [768, 1536, 3072],
+    },
+    supportedTaskTypes: EMBEDDING_TASK_TYPES,
+    supportedOptions: EMBEDDING_OPTION_KEYS,
+    unsupportedOptions: [],
+    notes: [
+      "Use RETRIEVAL_QUERY for search queries and RETRIEVAL_DOCUMENT for indexed documents.",
+      "Embeddings from gemini-embedding-001 are not compatible with gemini-embedding-2-preview and require reindexing when switching model families.",
+    ],
+  },
+  "gemini-embedding-2-preview": {
+    model: "gemini-embedding-2-preview",
+    isKnownModel: true,
+    source: "catalog",
+    inputLimits: {
+      supportsTextInput: true,
+      supportsMultimodalInput: true,
+      supportedInputModalities: ["text", "image", "audio", "video", "pdf"],
+      maxInputTokens: 8192,
+      maxImagesPerRequest: 6,
+      maxAudioDurationSeconds: 80,
+      maxVideoDurationSeconds: 120,
+      maxPdfPages: 6,
+    },
+    outputLimits: {
+      defaultDimensions: 3072,
+      minOutputDimensions: 128,
+      maxOutputDimensions: 3072,
+      recommendedOutputDimensions: [768, 1536, 3072],
+    },
+    supportedTaskTypes: EMBEDDING_TASK_TYPES,
+    supportedOptions: EMBEDDING_OPTION_KEYS,
+    unsupportedOptions: [],
+    notes: [
+      "A single content entry with multiple parts produces one aggregated embedding across modalities.",
+      "Multiple entries in the contents array produce multiple embeddings in the same response.",
+      "Embeddings from gemini-embedding-2-preview are not compatible with gemini-embedding-001 and require reindexing when switching model families.",
+    ],
+  },
+};
+
 const KNOWN_AUDIO_MODEL_CAPABILITIES: Record<KnownAudioGenerationModel, GeminiAudioModelCapabilities> = {
   "gemini-2.5-flash-preview-tts": {
     model: "gemini-2.5-flash-preview-tts",
@@ -1588,6 +1831,13 @@ for (const model of GEMINI_TEXT_MODELS) {
   );
 }
 
+for (const model of GEMINI_EMBEDDING_MODELS) {
+  KNOWN_EMBEDDING_MODEL_CAPABILITIES[model].unsupportedOptions = toUnsupportedOptions(
+    KNOWN_EMBEDDING_MODEL_CAPABILITIES[model].supportedOptions,
+    EMBEDDING_OPTION_KEYS,
+  );
+}
+
 for (const model of GEMINI_AUDIO_MODELS) {
   KNOWN_AUDIO_MODEL_CAPABILITIES[model].unsupportedOptions = toUnsupportedOptions(
     KNOWN_AUDIO_MODEL_CAPABILITIES[model].supportedOptions,
@@ -1628,6 +1878,12 @@ export const GEMINI_IMAGE_MODEL_CAPABILITIES: Readonly<
  */
 export const GEMINI_TEXT_MODEL_CAPABILITIES: Readonly<Record<KnownTextGenerationModel, GeminiTextModelCapabilities>> =
   KNOWN_TEXT_MODEL_CAPABILITIES;
+
+/**
+ * Public embedding capability catalog keyed by known embedding model IDs.
+ */
+export const GEMINI_EMBEDDING_MODEL_CAPABILITIES: Readonly<Record<KnownEmbeddingModel, GeminiEmbeddingModelCapabilities>> =
+  KNOWN_EMBEDDING_MODEL_CAPABILITIES;
 
 /**
  * Public audio/TTS capability catalog keyed by known audio model IDs.
@@ -1697,6 +1953,32 @@ const TEXT_FALLBACK_CAPABILITIES: GeminiTextModelCapabilities = {
   },
   supportedOptions: TEXT_OPTION_KEYS,
   unsupportedOptions: [],
+};
+
+const EMBEDDING_FALLBACK_CAPABILITIES: GeminiEmbeddingModelCapabilities = {
+  model: "unknown",
+  isKnownModel: false,
+  source: "fallback",
+  inputLimits: {
+    supportsTextInput: true,
+    supportsMultimodalInput: false,
+    supportedInputModalities: ["text"],
+    maxInputTokens: null,
+    maxImagesPerRequest: null,
+    maxAudioDurationSeconds: null,
+    maxVideoDurationSeconds: null,
+    maxPdfPages: null,
+  },
+  outputLimits: {
+    defaultDimensions: 3072,
+    minOutputDimensions: 128,
+    maxOutputDimensions: 3072,
+    recommendedOutputDimensions: [768, 1536, 3072],
+  },
+  supportedTaskTypes: EMBEDDING_TASK_TYPES,
+  supportedOptions: EMBEDDING_OPTION_KEYS,
+  unsupportedOptions: [],
+  notes: ["Treat unknown embedding models conservatively and avoid mixing vector spaces across model families."],
 };
 
 const AUDIO_FALLBACK_CAPABILITIES: GeminiAudioModelCapabilities = {
@@ -1803,6 +2085,10 @@ function isKnownTextModel(modelId: string): modelId is KnownTextGenerationModel 
   return (GEMINI_TEXT_MODELS as readonly string[]).includes(modelId);
 }
 
+function isKnownEmbeddingModel(modelId: string): modelId is KnownEmbeddingModel {
+  return (GEMINI_EMBEDDING_MODELS as readonly string[]).includes(modelId);
+}
+
 function isKnownAudioModel(modelId: string): modelId is KnownAudioGenerationModel {
   return (GEMINI_AUDIO_MODELS as readonly string[]).includes(modelId);
 }
@@ -1847,6 +2133,22 @@ export function getTextModelCapabilities(modelId: string): GeminiTextModelCapabi
 
   return {
     ...TEXT_FALLBACK_CAPABILITIES,
+    model: normalizedModel || modelId || "unknown",
+  };
+}
+
+/**
+ * Resolve embedding-model capabilities for known and unknown model IDs.
+ * Unknown models return a conservative fallback and never throw.
+ */
+export function getEmbeddingModelCapabilities(modelId: string): GeminiEmbeddingModelCapabilities {
+  const normalizedModel = normalizeModelId(modelId);
+  if (isKnownEmbeddingModel(normalizedModel)) {
+    return GEMINI_EMBEDDING_MODEL_CAPABILITIES[normalizedModel];
+  }
+
+  return {
+    ...EMBEDDING_FALLBACK_CAPABILITIES,
     model: normalizedModel || modelId || "unknown",
   };
 }
@@ -1975,6 +2277,39 @@ export function getTextModelConfigOptions(
 ): Array<GeminiConfigOptionDescriptor<GeminiTextConfigOptionKey>> {
   const capabilities = getTextModelCapabilities(modelId);
   return capabilities.supportedOptions.map((optionKey) => GEMINI_TEXT_CONFIG_OPTIONS[optionKey]);
+}
+
+/**
+ * Returns model-filtered embedding option descriptors with per-model
+ * constraints merged in.
+ */
+export function getEmbeddingModelConfigOptions(
+  modelId: string,
+): Array<GeminiConfigOptionDescriptor<GeminiEmbeddingConfigOptionKey>> {
+  const capabilities = getEmbeddingModelCapabilities(modelId);
+
+  return capabilities.supportedOptions.map((optionKey) => {
+    const baseDescriptor = GEMINI_EMBEDDING_CONFIG_OPTIONS[optionKey];
+
+    if (optionKey === "taskType") {
+      return {
+        ...baseDescriptor,
+        allowedValues: capabilities.supportedTaskTypes,
+      };
+    }
+
+    if (optionKey === "outputDimensionality") {
+      return {
+        ...baseDescriptor,
+        min: capabilities.outputLimits.minOutputDimensions ?? baseDescriptor.min,
+        max: capabilities.outputLimits.maxOutputDimensions ?? baseDescriptor.max,
+        defaultValue: capabilities.outputLimits.defaultDimensions ?? baseDescriptor.defaultValue,
+        note: `${baseDescriptor.note ?? ""} Current recommended values: ${capabilities.outputLimits.recommendedOutputDimensions.join(", ")}.`.trim(),
+      };
+    }
+
+    return baseDescriptor;
+  });
 }
 
 /**
@@ -2123,6 +2458,13 @@ export function getTextModelAttachmentLimits(modelId: string): GeminiTextAttachm
 }
 
 /**
+ * Resolve embedding input limits by model.
+ */
+export function getEmbeddingModelInputLimits(modelId: string): GeminiEmbeddingInputLimits {
+  return getEmbeddingModelCapabilities(modelId).inputLimits;
+}
+
+/**
  * Resolve audio/TTS speaker limits by model.
  */
 export function getAudioModelSpeakerLimits(modelId: string): GeminiAudioSpeakerLimits {
@@ -2156,6 +2498,7 @@ export function getLiveModelFeatureFlags(modelId: string): GeminiLiveModelCapabi
  */
 type _ImageOptionContract = Pick<GenerateImageOptions, GeminiImageConfigOptionKey>;
 type _TextOptionContract = Pick<GenerateTextOptions, GeminiTextConfigOptionKey>;
+type _EmbeddingOptionContract = Pick<GenerateEmbeddingOptions, GeminiEmbeddingConfigOptionKey>;
 type _AudioOptionContract = Pick<GenerateAudioOptions, GeminiAudioConfigOptionKey>;
 type _MusicOptionContract = Pick<GenerateMusicOptions, GeminiMusicConfigOptionKey>;
 type _VideoOptionContract = Pick<GenerateVideoOptions, GeminiVideoConfigOptionKey>;
@@ -2163,6 +2506,7 @@ type _LiveOptionContract = Pick<LiveChatSessionOptions, GeminiLiveConfigOptionKe
 
 void (0 as unknown as _ImageOptionContract);
 void (0 as unknown as _TextOptionContract);
+void (0 as unknown as _EmbeddingOptionContract);
 void (0 as unknown as _AudioOptionContract);
 void (0 as unknown as _MusicOptionContract);
 void (0 as unknown as _VideoOptionContract);

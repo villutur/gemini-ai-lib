@@ -1,8 +1,8 @@
 # Model Capabilities And Config Option Contract
 
 This document defines the consumer-facing metadata contract exported by
-`gemini-ai-lib` for model-aware UI and request shaping across text, image,
-audio, music, video, and live surfaces.
+`gemini-ai-lib` for model-aware UI and request shaping across text, embedding,
+image, audio, music, video, and live surfaces.
 
 ## Purpose
 
@@ -14,12 +14,14 @@ audio, music, video, and live surfaces.
 
 - `GEMINI_IMAGE_MODEL_CAPABILITIES`
 - `GEMINI_TEXT_MODEL_CAPABILITIES`
+- `GEMINI_EMBEDDING_MODEL_CAPABILITIES`
 - `GEMINI_AUDIO_MODEL_CAPABILITIES`
 - `GEMINI_MUSIC_MODEL_CAPABILITIES`
 - `GEMINI_VIDEO_MODEL_CAPABILITIES`
 - `GEMINI_LIVE_MODEL_CAPABILITIES`
 - `GEMINI_IMAGE_CONFIG_OPTIONS`
 - `GEMINI_TEXT_CONFIG_OPTIONS`
+- `GEMINI_EMBEDDING_CONFIG_OPTIONS`
 - `GEMINI_AUDIO_CONFIG_OPTIONS`
 - `GEMINI_MUSIC_CONFIG_OPTIONS`
 - `GEMINI_VIDEO_CONFIG_OPTIONS`
@@ -29,18 +31,21 @@ audio, music, video, and live surfaces.
 
 - `getImageModelCapabilities(modelId)`
 - `getTextModelCapabilities(modelId)`
+- `getEmbeddingModelCapabilities(modelId)`
 - `getAudioModelCapabilities(modelId)`
 - `getMusicModelCapabilities(modelId)`
 - `getVideoModelCapabilities(modelId)`
 - `getLiveModelCapabilities(modelId)`
 - `getImageModelConfigOptions(modelId)`
 - `getTextModelConfigOptions(modelId)`
+- `getEmbeddingModelConfigOptions(modelId)`
 - `getAudioModelConfigOptions(modelId)`
 - `getMusicModelConfigOptions(modelId)`
 - `getVideoModelConfigOptions(modelId)`
 - `getLiveModelConfigOptions(modelId)`
 - `getImageModelAttachmentLimits(modelId)`
 - `getTextModelAttachmentLimits(modelId)`
+- `getEmbeddingModelInputLimits(modelId)`
 - `getAudioModelSpeakerLimits(modelId)`
 - `getMusicModelAttachmentLimits(modelId)`
 - `getVideoModelAttachmentLimits(modelId)`
@@ -76,6 +81,10 @@ limits structure.
 - Text:
   - `GeminiTextModelCapabilities`
   - `GeminiTextAttachmentLimits`
+- Embeddings:
+  - `GeminiEmbeddingModelCapabilities`
+  - `GeminiEmbeddingInputLimits`
+  - `GeminiEmbeddingOutputLimits`
 - Audio/TTS:
   - `GeminiAudioModelCapabilities`
   - `GeminiAudioInputLimits`
@@ -112,6 +121,7 @@ Each exported option-key union is mapped back to its service options type:
 
 - `GeminiImageConfigOptionKey` -> `GenerateImageOptions`
 - `GeminiTextConfigOptionKey` -> `GenerateTextOptions`
+- `GeminiEmbeddingConfigOptionKey` -> `GenerateEmbeddingOptions`
 - `GeminiAudioConfigOptionKey` -> `GenerateAudioOptions`
 - `GeminiMusicConfigOptionKey` -> `GenerateMusicOptions`
 - `GeminiVideoConfigOptionKey` -> `GenerateVideoOptions`
