@@ -30,7 +30,28 @@ function resolveCommand(command) {
   return command;
 }
 
+function quoteWindowsArg(value) {
+  if (value.length === 0) {
+    return "\"\"";
+  }
+
+  if (/^[A-Za-z0-9_./:\\=@,+-]+$/.test(value)) {
+    return value;
+  }
+
+  return `"${value.replace(/(["\\])/g, "\\$1")}"`;
+}
+
 function run(command, args, options = {}) {
+  if (isWindows) {
+    const commandLine = [resolveCommand(command), ...args].map(quoteWindowsArg).join(" ");
+    return execFileSync("cmd.exe", ["/d", "/s", "/c", commandLine], {
+      cwd,
+      encoding: "utf8",
+      stdio: options.stdio ?? "pipe",
+    }).trim();
+  }
+
   return execFileSync(resolveCommand(command), args, {
     cwd,
     encoding: "utf8",
@@ -39,6 +60,12 @@ function run(command, args, options = {}) {
 }
 
 function runInherit(command, args) {
+  if (isWindows) {
+    const commandLine = [resolveCommand(command), ...args].map(quoteWindowsArg).join(" ");
+    execFileSync("cmd.exe", ["/d", "/s", "/c", commandLine], { cwd, stdio: "inherit" });
+    return;
+  }
+
   execFileSync(resolveCommand(command), args, { cwd, stdio: "inherit" });
 }
 
