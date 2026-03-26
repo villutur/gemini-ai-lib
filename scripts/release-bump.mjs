@@ -30,6 +30,10 @@ function resolveCommand(command) {
   return command;
 }
 
+function needsWindowsCmdWrapper(resolvedCommand) {
+  return isWindows && /\.cmd$/i.test(resolvedCommand);
+}
+
 function quoteWindowsArg(value) {
   if (value.length === 0) {
     return "\"\"";
@@ -43,8 +47,10 @@ function quoteWindowsArg(value) {
 }
 
 function run(command, args, options = {}) {
-  if (isWindows) {
-    const commandLine = [resolveCommand(command), ...args].map(quoteWindowsArg).join(" ");
+  const resolvedCommand = resolveCommand(command);
+
+  if (needsWindowsCmdWrapper(resolvedCommand)) {
+    const commandLine = [resolvedCommand, ...args].map(quoteWindowsArg).join(" ");
     return execFileSync("cmd.exe", ["/d", "/s", "/c", commandLine], {
       cwd,
       encoding: "utf8",
@@ -52,7 +58,7 @@ function run(command, args, options = {}) {
     }).trim();
   }
 
-  return execFileSync(resolveCommand(command), args, {
+  return execFileSync(resolvedCommand, args, {
     cwd,
     encoding: "utf8",
     stdio: options.stdio ?? "pipe",
@@ -60,13 +66,15 @@ function run(command, args, options = {}) {
 }
 
 function runInherit(command, args) {
-  if (isWindows) {
-    const commandLine = [resolveCommand(command), ...args].map(quoteWindowsArg).join(" ");
+  const resolvedCommand = resolveCommand(command);
+
+  if (needsWindowsCmdWrapper(resolvedCommand)) {
+    const commandLine = [resolvedCommand, ...args].map(quoteWindowsArg).join(" ");
     execFileSync("cmd.exe", ["/d", "/s", "/c", commandLine], { cwd, stdio: "inherit" });
     return;
   }
 
-  execFileSync(resolveCommand(command), args, { cwd, stdio: "inherit" });
+  execFileSync(resolvedCommand, args, { cwd, stdio: "inherit" });
 }
 
 function fail(message) {
