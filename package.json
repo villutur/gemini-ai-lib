@@ -1,6 +1,6 @@
 {
   "name": "@villutur/gemini-ai-lib",
-  "version": "0.5.3",
+  "version": "0.5.4",
   "private": false,
   "description": "Reusable TypeScript wrappers and helpers for Google's Gemini API.",
   "author": "Villu Tur",
