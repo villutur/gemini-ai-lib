@@ -57,7 +57,6 @@ export type KnownVideoGenerationModel = (typeof GEMINI_VIDEO_MODELS)[number];
  */
 export const GEMINI_LIVE_MODELS = [
   "gemini-2.5-flash-native-audio-preview-12-2025",
-  "gemini-2.5-flash-native-audio-preview-09-2025",
 ] as const;
 
 export type KnownLiveGenerationModel = (typeof GEMINI_LIVE_MODELS)[number];
@@ -121,7 +120,6 @@ export const GEMINI_VIDEO_MODEL_DISPLAY_NAMES: Record<KnownVideoGenerationModel,
  */
 export const GEMINI_LIVE_MODEL_DISPLAY_NAMES: Record<KnownLiveGenerationModel, string> = {
   "gemini-2.5-flash-native-audio-preview-12-2025": "Gemini 2.5 Flash Native Audio (12-2025)",
-  "gemini-2.5-flash-native-audio-preview-09-2025": "Gemini 2.5 Flash Native Audio (09-2025)",
 };
 
 /**

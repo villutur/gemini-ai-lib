@@ -12,5 +12,43 @@ export * from "./video.js";
 export * from "./live.js";
 export * from "./logger.js";
 export * from "./response-metadata.js";
-export { Modality } from "@google/genai";
-export type { FunctionCall, LiveServerMessage, Session } from "@google/genai";
+export {
+  ActivityHandling,
+  EndSensitivity,
+  GoogleGenAI,
+  Modality,
+  PersonGeneration,
+  StartSensitivity,
+  ThinkingLevel,
+} from "@google/genai";
+export type {
+  Chat,
+  Content,
+  ContentEmbedding,
+  ContentListUnion,
+  EmbedContentMetadata,
+  EmbedContentResponse,
+  FunctionCall,
+  GenerateContentConfig,
+  GenerateContentResponse,
+  GenerateImagesConfig,
+  GenerateImagesParameters,
+  GenerateImagesResponse,
+  GeneratedImage,
+  GeneratedImageMask,
+  GeneratedVideo,
+  GenerateVideosOperation,
+  GenerateVideosResponse,
+  Image,
+  ImageConfig,
+  ImageConfigImageOutputOptions,
+  LiveConnectConfig,
+  LiveServerMessage,
+  MultiSpeakerVoiceConfig,
+  Part,
+  Schema,
+  Session,
+  Tool,
+  Video,
+  VideoGenerationReferenceImage,
+} from "@google/genai";

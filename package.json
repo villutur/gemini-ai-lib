@@ -63,7 +63,7 @@
     "prettyfy": "prettier --write \"src/**/*.{js,jsx,mjs,cjs,ts,tsx,json}\""
   },
   "dependencies": {
-    "@google/genai": "^1.46.0",
+    "@google/genai": "^1.47.0",
     "consola": "^3.4.2"
   },
   "devDependencies": {

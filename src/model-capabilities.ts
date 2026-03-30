@@ -855,7 +855,7 @@ export const GEMINI_IMAGE_CONFIG_OPTIONS: Record<
     kind: "string",
     allowedValues: ["image/png", "image/jpeg", "image/webp", "image/heic"],
     defaultValue: "image/png",
-    note: "Gemini image-model routes generally return native output format and may ignore this option.",
+    note: "Consumer-facing helper support is Imagen-only. The Gemini API `ImageConfig` transport currently marks this field as unsupported.",
   },
   /**
    * Compression quality for formats that expose lossy-quality controls.
@@ -869,6 +869,7 @@ export const GEMINI_IMAGE_CONFIG_OPTIONS: Record<
     max: 100,
     step: 1,
     defaultValue: 90,
+    note: "Consumer-facing helper support is Imagen-only and primarily relevant for JPEG output.",
   },
   /**
    * Response modality selection for multimodal Gemini content responses.
@@ -1358,6 +1359,19 @@ const MUSIC_OPTION_KEYS = Object.keys(GEMINI_MUSIC_CONFIG_OPTIONS) as GeminiMusi
 const VIDEO_OPTION_KEYS = Object.keys(GEMINI_VIDEO_CONFIG_OPTIONS) as GeminiVideoConfigOptionKey[];
 const LIVE_OPTION_KEYS = Object.keys(GEMINI_LIVE_CONFIG_OPTIONS) as GeminiLiveConfigOptionKey[];
 
+const GEMINI_25_FLASH_IMAGE_ASPECT_RATIOS: readonly GeminiFlashAspectRatio[] = [
+  "1:1",
+  "2:3",
+  "3:2",
+  "3:4",
+  "4:3",
+  "4:5",
+  "5:4",
+  "9:16",
+  "16:9",
+  "21:9",
+];
+
 const FLASH_IMAGE_ASPECT_RATIOS: readonly GeminiFlashAspectRatio[] = [
   "1:1",
   "1:4",
@@ -1376,7 +1390,10 @@ const FLASH_IMAGE_ASPECT_RATIOS: readonly GeminiFlashAspectRatio[] = [
 ];
 
 const IMAGEN_IMAGE_ASPECT_RATIOS = ["1:1", "3:4", "4:3", "9:16", "16:9"] as const;
-const IMAGE_SIZE_TIERS = ["256", "512", "1K", "2K", "4K"] as const satisfies readonly GeminiImageSize[];
+const GEMINI_25_FLASH_IMAGE_SIZES = ["1K"] as const satisfies readonly GeminiImageSize[];
+const GEMINI_31_FLASH_IMAGE_SIZES = ["512", "1K", "2K", "4K"] as const satisfies readonly GeminiImageSize[];
+const GEMINI_3_PRO_IMAGE_SIZES = ["1K", "2K", "4K"] as const satisfies readonly GeminiImageSize[];
+const IMAGEN_IMAGE_SIZES = ["1K", "2K"] as const satisfies readonly GeminiImageSize[];
 const VIDEO_ASPECT_RATIOS = ["16:9", "9:16"] as const satisfies readonly GeminiVideoAspectRatio[];
 const VIDEO_DURATIONS = [4, 6, 8] as const satisfies readonly GeminiVideoDurationSeconds[];
 const STANDARD_VIDEO_RESOLUTIONS = ["720p", "1080p", "4k"] as const satisfies readonly GeminiVideoResolution[];
@@ -1418,8 +1435,8 @@ const KNOWN_IMAGE_MODEL_CAPABILITIES: Record<KnownImageGenerationModel, GeminiIm
       "responseSchema",
     ],
     unsupportedOptions: [],
-    allowedAspectRatios: FLASH_IMAGE_ASPECT_RATIOS,
-    allowedImageSizes: IMAGE_SIZE_TIERS,
+    allowedAspectRatios: GEMINI_25_FLASH_IMAGE_ASPECT_RATIOS,
+    allowedImageSizes: GEMINI_25_FLASH_IMAGE_SIZES,
     allowedOutputMimeTypes: [],
     allowedPersonGenerationModes: ["ALLOW_ADULT", "ALLOW_ALL", "DONT_ALLOW"],
   },
@@ -1445,7 +1462,7 @@ const KNOWN_IMAGE_MODEL_CAPABILITIES: Record<KnownImageGenerationModel, GeminiIm
     ],
     unsupportedOptions: [],
     allowedAspectRatios: FLASH_IMAGE_ASPECT_RATIOS,
-    allowedImageSizes: IMAGE_SIZE_TIERS,
+    allowedImageSizes: GEMINI_31_FLASH_IMAGE_SIZES,
     allowedOutputMimeTypes: [],
     allowedPersonGenerationModes: ["ALLOW_ADULT", "ALLOW_ALL", "DONT_ALLOW"],
   },
@@ -1471,7 +1488,7 @@ const KNOWN_IMAGE_MODEL_CAPABILITIES: Record<KnownImageGenerationModel, GeminiIm
     ],
     unsupportedOptions: [],
     allowedAspectRatios: FLASH_IMAGE_ASPECT_RATIOS,
-    allowedImageSizes: IMAGE_SIZE_TIERS,
+    allowedImageSizes: GEMINI_3_PRO_IMAGE_SIZES,
     allowedOutputMimeTypes: [],
     allowedPersonGenerationModes: ["ALLOW_ADULT", "ALLOW_ALL", "DONT_ALLOW"],
   },
@@ -1497,8 +1514,8 @@ const KNOWN_IMAGE_MODEL_CAPABILITIES: Record<KnownImageGenerationModel, GeminiIm
     ],
     unsupportedOptions: [],
     allowedAspectRatios: IMAGEN_IMAGE_ASPECT_RATIOS,
-    allowedImageSizes: ["1K", "2K", "4K"],
-    allowedOutputMimeTypes: ["image/png", "image/jpeg", "image/webp", "image/heic"],
+    allowedImageSizes: IMAGEN_IMAGE_SIZES,
+    allowedOutputMimeTypes: ["image/jpeg", "image/png"],
     allowedPersonGenerationModes: ["ALLOW_ADULT", "ALLOW_ALL", "DONT_ALLOW"],
   },
 };
@@ -1826,28 +1843,6 @@ const KNOWN_LIVE_MODEL_CAPABILITIES: Record<KnownLiveGenerationModel, GeminiLive
     supportedOptions: LIVE_OPTION_KEYS,
     unsupportedOptions: [],
   },
-  "gemini-2.5-flash-native-audio-preview-09-2025": {
-    model: "gemini-2.5-flash-native-audio-preview-09-2025",
-    isKnownModel: true,
-    source: "catalog",
-    featureFlags: {
-      supportsAudioInput: true,
-      supportsAudioOutput: true,
-      supportsToolCalling: true,
-      supportsGoogleSearch: true,
-      supportsAffectiveDialog: true,
-      supportsProactiveAudio: true,
-      supportsVadConfig: true,
-    },
-    limits: {
-      minThinkingBudget:
-        LIVE_MODEL_THINKING_SUPPORT?.parameter === "thinkingBudget" ? LIVE_MODEL_THINKING_SUPPORT.minBudget : null,
-      maxThinkingBudget:
-        LIVE_MODEL_THINKING_SUPPORT?.parameter === "thinkingBudget" ? LIVE_MODEL_THINKING_SUPPORT.maxBudget : null,
-    },
-    supportedOptions: LIVE_OPTION_KEYS,
-    unsupportedOptions: [],
-  },
 };
 
 for (const model of GEMINI_IMAGE_MODELS) {
@@ -1962,8 +1957,8 @@ const IMAGE_FALLBACK_CAPABILITIES: GeminiImageModelCapabilities = {
     ["aspectRatio", "imageSize", "responseModalities", "responseMimeType", "responseSchema"],
     IMAGE_OPTION_KEYS,
   ),
-  allowedAspectRatios: FLASH_IMAGE_ASPECT_RATIOS,
-  allowedImageSizes: IMAGE_SIZE_TIERS,
+  allowedAspectRatios: GEMINI_25_FLASH_IMAGE_ASPECT_RATIOS,
+  allowedImageSizes: GEMINI_25_FLASH_IMAGE_SIZES,
   allowedOutputMimeTypes: [],
   allowedPersonGenerationModes: ["ALLOW_ADULT", "ALLOW_ALL", "DONT_ALLOW"],
 };

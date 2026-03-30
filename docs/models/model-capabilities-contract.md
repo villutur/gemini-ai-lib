@@ -73,6 +73,12 @@ Important fields:
 Consumers can use these descriptors to build generic model-aware config UIs
 without hardcoding per-model control metadata.
 
+For image models specifically, this metadata is consumer-facing guidance rather
+than a verbatim transport mirror. The exported image capability layer is
+docs-first and intentionally conservative when the local image docs describe
+broader model behavior than the currently typed helper surface can safely
+express.
+
 ## Capability Contract Families
 
 Each model family exports a typed capability object plus a family-specific
@@ -176,3 +182,16 @@ For example:
   returns audio/text.
 - the consuming project decides whether to expose that as a simple toggle,
   advanced panel, or hidden capability in its product UI.
+
+For image generation, there is an additional split to keep in mind:
+
+- raw wrappers such as `GeminiImageService.generateContent(...)` stay aligned
+  with the current SDK transport shape
+- exported image capabilities and option descriptors remain the
+  consumer-facing contract that apps should use for model-aware UI and helper
+  defaults
+
+That means the raw wrapper may accept a wider low-level request surface than
+the higher-level capability helpers advertise, while the capability helpers
+should still avoid claiming support for options the Gemini API marks as
+unsupported in the current SDK contract.

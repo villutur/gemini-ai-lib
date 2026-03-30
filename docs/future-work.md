@@ -17,6 +17,16 @@ Status labels:
 
 ## Live
 
+- [ ] Add support for `gemini-3.1-flash-live-preview`
+      Status: `Planned`
+      Priority: `Medium`
+      Complexity: `Medium`
+      Why later: The current live surface should first stabilize around the existing session/runtime contract before adding another preview-model path with its own capability expectations and model-catalog updates.
+      Related: `src/live.ts`, `src/model-catalogs.ts`, `src/model-capabilities.ts`
+      Revisit when: A consuming app needs the newer Gemini 3.1 live preview model or the live model catalog is refreshed as part of a broader Live API update.
+      Read: <https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-live-preview#migrating>
+      Local document of that link: docs/models/gemini-3.1-flash-live-preview.md
+
 - [ ] Research server-side live-session support
       Status: `Research`
       Priority: `Medium`

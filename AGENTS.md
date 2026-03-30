@@ -45,6 +45,11 @@ workspace.
 - When model examples or editor-hint unions need updating, use Google's
   official model index as the source of truth:
   `https://ai.google.dev/gemini-api/docs/models.md.txt`.
+- For image capability metadata refreshes specifically, use the local
+  `docs/models/image-models-*` notes as the canonical working source for the
+  consumer-facing capability layer, then cross-check current `@google/genai`
+  type comments before advertising transport-level support for image config
+  fields.
 - Keep thinking-profile mapping and raw Gemini response normalization generic
   here, but leave app-owned policy such as profile availability, allowlists,
   telemetry storage, and UI labels to the consuming app.

@@ -142,7 +142,6 @@ model IDs below.
 ### Live
 
 - `gemini-2.5-flash-native-audio-preview-12-2025`
-- `gemini-2.5-flash-native-audio-preview-09-2025`
 
 ## Usage
 
@@ -165,6 +164,42 @@ const response = await textService.generateTextString("Summarize the current rol
   temperature: 0.4,
 });
 ```
+
+`generateContent(...)` is now the canonical one-shot text method. The older
+`generateText(...)` method is still available as a deprecated backward-compatible
+alias.
+
+You can also import the most common Gemini SDK types directly from
+`@villutur/gemini-ai-lib` instead of mixing imports from `@google/genai`:
+
+```ts
+import {
+  GeminiTextService,
+  type ContentListUnion,
+  type GenerateContentResponse,
+  type Part,
+} from "@villutur/gemini-ai-lib";
+
+const parts: Part[] = [
+  { text: "Summarize this rollout update in two bullets." },
+  { text: "Team A completed the migration, but monitoring still needs follow-up." },
+];
+
+const contents: ContentListUnion = [{ role: "user", parts }];
+
+const textService = new GeminiTextService({
+  apiKey: process.env.GEMINI_API_KEY,
+});
+
+const response: GenerateContentResponse = await textService.generateContent(contents, {
+  model: "gemini-3-flash-preview",
+});
+```
+
+The root package also re-exports a curated image-focused subset of
+`@google/genai` types and values such as `ImageConfig`,
+`GenerateImagesConfig`, `GenerateImagesResponse`, `GeneratedImage`,
+`GeneratedImageMask`, and `PersonGeneration`.
 
 Persistent text chat can layer on top of `GeminiChatService` while still
 letting the consuming project own validation and request shaping.
@@ -224,7 +259,7 @@ const service = new GeminiTextService({
   apiKey: process.env.GEMINI_API_KEY,
 });
 
-const result = await service.generateText("Compare the rollout risks in three bullets.", {
+const result = await service.generateContent("Compare the rollout risks in three bullets.", {
   model: "gemini-3.1-pro-preview",
   thinkingConfig: createGeminiThinkingConfigForModel("gemini-3.1-pro-preview", {
     includeThoughts: false,
@@ -676,6 +711,13 @@ format. Do not assume `outputMimeType` is supported there. The library keeps
 that behavior model-aware and only forwards explicit output-format controls to
 Imagen-style routes where they are actually supported.
 
+`GeminiImageService` now has two layers:
+
+- `generateContent(...)`: a raw Gemini image-model wrapper around
+  `models.generateContent(...)` that returns the SDK response unchanged
+- `generateImage(...)` / `generateImageFromPrompt(...)`: ergonomic helpers that
+  normalize generated images into the existing `GenerateImageResult` structure
+
 ```ts
 import { GEMINI_IMAGE_MODELS, GeminiImageService } from "@villutur/gemini-ai-lib";
 
@@ -689,6 +731,43 @@ const result = await imageService.generateImageFromPrompt("Create a clean geomet
 });
 ```
 
+If you want the transparent Gemini image-model response instead of the
+normalized helper result, use `generateContent(...)` directly:
+
+```ts
+import {
+  GeminiAttachmentHelper,
+  GeminiImageService,
+  type ContentListUnion,
+  type GenerateContentResponse,
+} from "@villutur/gemini-ai-lib";
+
+const imageService = new GeminiImageService({
+  apiKey: process.env.GEMINI_API_KEY,
+});
+
+const contents: ContentListUnion = [
+  {
+    role: "user",
+    parts: [
+      { text: "Create a clean product-shot style render." },
+      GeminiAttachmentHelper.CreateFromBuffer(referenceBuffer, "image/png"),
+    ],
+  },
+];
+
+const response: GenerateContentResponse = await imageService.generateContent(contents, {
+  model: "gemini-3.1-flash-image-preview",
+  config: {
+    responseModalities: ["IMAGE", "TEXT"],
+    imageConfig: {
+      aspectRatio: "1:1",
+      imageSize: "1K",
+    },
+  },
+});
+```
+
 If you need explicit output-format control, use an Imagen-capable model:
 
 ```ts
@@ -698,6 +777,17 @@ const result = await imageService.generateImageFromPrompt("Create a clean geomet
   outputMimeType: "image/png",
 });
 ```
+
+Consumer-facing image capability metadata in this package is docs-first and
+conservative. In practice that means:
+
+- Gemini image-model capability metadata does not advertise Imagen-only output
+  format or compression controls
+- `gemini-2.5-flash-image` is treated as a conservative `1K`-tier helper model
+  even though prose docs may describe a broader approximate pixel ceiling
+- the raw `generateContent(...)` wrapper remains SDK-aligned, while
+  `getImageModelCapabilities(...)` and `getImageModelConfigOptions(...)` stay
+  optimized for app-facing UI and helper defaults
 
 Video generation follows a long-running-operation flow:
 

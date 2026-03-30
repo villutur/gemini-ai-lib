@@ -1,5 +1,4 @@
-import { GenerateContentResponse } from "@google/genai";
-import type { GenerateContentConfig, Part } from "@google/genai";
+import type { ContentListUnion, GenerateContentConfig, GenerateContentResponse } from "@google/genai";
 import { GeminiBaseService } from "./base.js";
 import {
   GEMINI_TEXT_MODELS,
@@ -13,6 +12,7 @@ import {
  */
 export { GEMINI_TEXT_MODELS, GEMINI_TEXT_MODEL_DISPLAY_NAMES, getTextModelDisplayName };
 export type { KnownTextGenerationModel };
+export type { Content, ContentListUnion, Part } from "@google/genai";
 
 /**
  * Supported models for text generation tasks.
@@ -54,26 +54,18 @@ export interface GenerateTextOptions {
  */
 export class GeminiTextService extends GeminiBaseService {
   /**
-   * Generates a standard text response from a given prompt or array of parts.
-   * Optionally accepts an array of previous messages or mixed attachments (Parts).
+   * Generates content from any Gemini SDK `ContentListUnion` input shape.
+   * This is the canonical text-generation method for the service.
    *
-   * @param input The text prompt or an array of message objects containing roles and parts.
+   * @param contents The prompt, content object, content array, or parts payload to send to Gemini.
    * @param options Configuration options for the generation process (model, temperature, tools, etc.).
    * @returns A Promise resolving to the complete GenerateContentResponse object.
    */
-  public async generateText(
-    input: string | Array<{ role: "user" | "model"; parts: Part[] }>,
+  public async generateContent(
+    contents: ContentListUnion,
     options?: GenerateTextOptions,
   ): Promise<GenerateContentResponse> {
     const model = options?.model || "gemini-3-flash-preview";
-
-    // Construct contents
-    let contents;
-    if (typeof input === "string") {
-      contents = input;
-    } else {
-      contents = input;
-    }
 
     // Merge tools
     const configTools = options?.tools || this.defaultTools;
@@ -96,7 +88,7 @@ export class GeminiTextService extends GeminiBaseService {
       status: "running",
       metadata: {
         model,
-        inputType: typeof input === "string" ? "string" : "content-array",
+        inputType: Array.isArray(contents) ? "content-array" : typeof contents === "string" ? "string" : "content-object",
         toolCount: configTools?.length ?? 0,
         hasSystemInstruction: Boolean(options?.systemInstruction),
         responseMimeType: options?.responseMimeType,
@@ -147,6 +139,22 @@ export class GeminiTextService extends GeminiBaseService {
   }
 
   /**
+   * Backward-compatible alias for `generateContent(...)`.
+   *
+   * @deprecated Use `generateContent(...)` instead. This alias is kept for backward compatibility.
+   *
+   * @param contents The prompt, content object, content array, or parts payload to send to Gemini.
+   * @param options Configuration options for the generation process (model, temperature, tools, etc.).
+   * @returns A Promise resolving to the complete GenerateContentResponse object.
+   */
+  public async generateText(
+    contents: ContentListUnion,
+    options?: GenerateTextOptions,
+  ): Promise<GenerateContentResponse> {
+    return this.generateContent(contents, options);
+  }
+
+  /**
    * High-speed text generation optimized for low latency tasks.
    * Uses `gemini-3-flash-preview` by default for a fast general-purpose path.
    *
@@ -158,7 +166,7 @@ export class GeminiTextService extends GeminiBaseService {
     prompt: string,
     options?: Omit<GenerateTextOptions, "model">,
   ): Promise<GenerateContentResponse> {
-    return this.generateText(prompt, {
+    return this.generateContent(prompt, {
       ...options,
       model: "gemini-3-flash-preview",
     });
@@ -173,7 +181,7 @@ export class GeminiTextService extends GeminiBaseService {
    * @returns A Promise resolving directly to the generated text string.
    */
   public async generateTextString(prompt: string, options?: GenerateTextOptions): Promise<string> {
-    const response = await this.generateText(prompt, options);
+    const response = await this.generateContent(prompt, options);
     return response.text || "";
   }
 }
