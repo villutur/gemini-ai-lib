@@ -20,6 +20,7 @@ export {
   PersonGeneration,
   StartSensitivity,
   ThinkingLevel,
+  Type,
 } from "@google/genai";
 export type {
   Chat,
