@@ -1,28 +1,38 @@
 /**
  * Shared list of image-capable Gemini models for consumer model pickers.
  */
-export const GEMINI_IMAGE_MODELS = [
-  "gemini-2.5-flash-image",
-  "gemini-3.1-flash-image-preview",
-  "gemini-3-pro-image-preview",
-  "imagen-4.0-generate-001",
-] as const;
+export const GEMINI_IMAGE_MODELS = ["gemini-2.5-flash-image", "gemini-3.1-flash-image-preview", "gemini-3-pro-image-preview", "imagen-4.0-generate-001"] as const;
 
 export type KnownImageGenerationModel = (typeof GEMINI_IMAGE_MODELS)[number];
 
 /**
  * Shared list of text-oriented Gemini models for consumer model pickers.
  */
-export const GEMINI_TEXT_MODELS = [
-  "gemini-2.5-flash-lite",
+export const GEMINI_TEXT_MODELS = ["gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-2.5-pro", "gemini-3-flash-preview", "gemini-3.1-flash-lite-preview", "gemini-3.1-pro-preview"] as const;
+
+export type KnownTextGenerationModel = (typeof GEMINI_TEXT_MODELS)[number];
+
+/**
+ * Shared list of Gemini models commonly used with the Interactions API.
+ */
+export const GEMINI_INTERACTION_MODELS = [
   "gemini-2.5-flash",
   "gemini-2.5-pro",
   "gemini-3-flash-preview",
   "gemini-3.1-flash-lite-preview",
   "gemini-3.1-pro-preview",
+  "gemini-3-pro-image-preview",
+  "gemini-3.1-flash-image-preview",
 ] as const;
 
-export type KnownTextGenerationModel = (typeof GEMINI_TEXT_MODELS)[number];
+export type KnownInteractionModel = (typeof GEMINI_INTERACTION_MODELS)[number];
+
+/**
+ * Shared list of Gemini agents available through the Interactions API.
+ */
+export const GEMINI_INTERACTION_AGENTS = ["deep-research-pro-preview-12-2025", "deep-research-preview-04-2026", "deep-research-max-preview-04-2026"] as const;
+
+export type KnownInteractionAgent = (typeof GEMINI_INTERACTION_AGENTS)[number];
 
 /**
  * Shared list of audio/TTS Gemini models for consumer model pickers.
@@ -55,9 +65,7 @@ export type KnownVideoGenerationModel = (typeof GEMINI_VIDEO_MODELS)[number];
 /**
  * Shared list of live-session Gemini models for real-time voice/video flows.
  */
-export const GEMINI_LIVE_MODELS = [
-  "gemini-2.5-flash-native-audio-preview-12-2025",
-] as const;
+export const GEMINI_LIVE_MODELS = ["gemini-2.5-flash-native-audio-preview-12-2025"] as const;
 
 export type KnownLiveGenerationModel = (typeof GEMINI_LIVE_MODELS)[number];
 
@@ -81,6 +89,28 @@ export const GEMINI_TEXT_MODEL_DISPLAY_NAMES: Record<KnownTextGenerationModel, s
   "gemini-3-flash-preview": "Gemini 3 Flash Preview",
   "gemini-3.1-flash-lite-preview": "Gemini 3.1 Flash Lite Preview",
   "gemini-3.1-pro-preview": "Gemini 3.1 Pro Preview",
+};
+
+/**
+ * User-facing labels for known Interactions models.
+ */
+export const GEMINI_INTERACTION_MODEL_DISPLAY_NAMES: Record<KnownInteractionModel, string> = {
+  "gemini-2.5-flash": "Gemini 2.5 Flash",
+  "gemini-2.5-pro": "Gemini 2.5 Pro",
+  "gemini-3-flash-preview": "Gemini 3 Flash Preview",
+  "gemini-3.1-flash-lite-preview": "Gemini 3.1 Flash Lite Preview",
+  "gemini-3.1-pro-preview": "Gemini 3.1 Pro Preview",
+  "gemini-3-pro-image-preview": "Gemini 3 Pro Image Preview",
+  "gemini-3.1-flash-image-preview": "Gemini 3.1 Flash Image Preview",
+};
+
+/**
+ * User-facing labels for known Interactions agents.
+ */
+export const GEMINI_INTERACTION_AGENT_DISPLAY_NAMES: Record<KnownInteractionAgent, string> = {
+  "deep-research-pro-preview-12-2025": "Deep Research Pro Preview (12-2025)",
+  "deep-research-preview-04-2026": "Deep Research Preview (04-2026)",
+  "deep-research-max-preview-04-2026": "Deep Research Max Preview (04-2026)",
 };
 
 /**
@@ -138,6 +168,24 @@ export function getImageModelDisplayName(model: string): string {
  */
 export function getTextModelDisplayName(model: string): string {
   return GEMINI_TEXT_MODEL_DISPLAY_NAMES[model as KnownTextGenerationModel] ?? model;
+}
+
+/**
+ * Convert an Interactions model id to a user-facing display label.
+ * Unknown models fall back to the raw model id so consumer UIs remain robust
+ * when custom or future model ids are used.
+ */
+export function getInteractionModelDisplayName(model: string): string {
+  return GEMINI_INTERACTION_MODEL_DISPLAY_NAMES[model as KnownInteractionModel] ?? model;
+}
+
+/**
+ * Convert an Interactions agent id to a user-facing display label.
+ * Unknown agents fall back to the raw agent id so consumer UIs remain robust
+ * when custom or future agent ids are used.
+ */
+export function getInteractionAgentDisplayName(agent: string): string {
+  return GEMINI_INTERACTION_AGENT_DISPLAY_NAMES[agent as KnownInteractionAgent] ?? agent;
 }
 
 /**

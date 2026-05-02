@@ -2,19 +2,16 @@ import type { GenerateAudioOptions } from "./audio.js";
 import { GEMINI_AUDIO_VOICES } from "./audio-voices.js";
 import type { GenerateEmbeddingOptions, GeminiEmbeddingTaskType } from "./embedding.js";
 import type { GenerateImageOptions, GeminiFlashAspectRatio, GeminiImageSize } from "./image.js";
+import type { GeminiInteractionCreateParams } from "./interactions.js";
 import type { LiveChatSessionOptions } from "./live.js";
 import type { GenerateMusicOptions } from "./music.js";
 import type { GenerateTextOptions } from "./text.js";
-import type {
-  GenerateVideoOptions,
-  GeminiVideoAspectRatio,
-  GeminiVideoDurationSeconds,
-  GeminiVideoResolution,
-} from "./video.js";
+import type { GenerateVideoOptions, GeminiVideoAspectRatio, GeminiVideoDurationSeconds, GeminiVideoResolution } from "./video.js";
 import {
   GEMINI_AUDIO_MODELS,
   GEMINI_EMBEDDING_MODELS,
   GEMINI_IMAGE_MODELS,
+  GEMINI_INTERACTION_MODELS,
   GEMINI_LIVE_MODELS,
   GEMINI_MUSIC_MODELS,
   GEMINI_TEXT_MODELS,
@@ -22,25 +19,15 @@ import {
   type KnownAudioGenerationModel,
   type KnownEmbeddingModel,
   type KnownImageGenerationModel,
+  type KnownInteractionModel,
   type KnownLiveGenerationModel,
   type KnownMusicGenerationModel,
   type KnownTextGenerationModel,
   type KnownVideoGenerationModel,
 } from "./model-catalogs.js";
-import {
-  getGeminiThinkingSupportForModel,
-  type GeminiThinkingModelSupport,
-  type GeminiThinkingProfileLevel,
-} from "./response-metadata.js";
+import { getGeminiThinkingSupportForModel, type GeminiThinkingModelSupport, type GeminiThinkingProfileLevel } from "./response-metadata.js";
 
-export {
-  GEMINI_AUDIO_VOICE_CATALOG,
-  GEMINI_AUDIO_VOICES,
-  getAudioVoiceNames,
-  getAudioVoiceOptions,
-  type GeminiAudioVoice,
-  type GeminiAudioVoiceName,
-} from "./audio-voices.js";
+export { GEMINI_AUDIO_VOICE_CATALOG, GEMINI_AUDIO_VOICES, getAudioVoiceNames, getAudioVoiceOptions, type GeminiAudioVoice, type GeminiAudioVoiceName } from "./audio-voices.js";
 
 /**
  * Discriminates where a returned capability record came from.
@@ -121,14 +108,26 @@ export type GeminiImageConfigOptionKey =
  * Text option keys exported for dynamic UI/config generation.
  * These keys map to `GenerateTextOptions`.
  */
-export type GeminiTextConfigOptionKey =
-  | "temperature"
+export type GeminiTextConfigOptionKey = "temperature" | "tools" | "safetySettings" | "cachedContent" | "responseMimeType" | "responseSchema" | "thinkingConfig";
+
+/**
+ * Interactions option keys exported for dynamic UI/config generation.
+ * These keys map to `GeminiInteractionCreateParams`.
+ */
+export type GeminiInteractionConfigOptionKey =
+  | "system_instruction"
+  | "generation_config"
   | "tools"
-  | "safetySettings"
-  | "cachedContent"
-  | "responseMimeType"
-  | "responseSchema"
-  | "thinkingConfig";
+  | "response_format"
+  | "response_mime_type"
+  | "response_modalities"
+  | "previous_interaction_id"
+  | "store"
+  | "stream"
+  | "background"
+  | "service_tier"
+  | "webhook_config"
+  | "agent_config";
 
 /**
  * Embedding option keys exported for dynamic UI/config generation.
@@ -140,11 +139,7 @@ export type GeminiEmbeddingConfigOptionKey = "taskType" | "title" | "outputDimen
  * Audio/TTS option keys exported for dynamic UI/config generation.
  * These keys map to `GenerateAudioOptions`.
  */
-export type GeminiAudioConfigOptionKey =
-  | "voiceName"
-  | "languageCode"
-  | "responseModalities"
-  | "multiSpeakerVoiceConfig";
+export type GeminiAudioConfigOptionKey = "voiceName" | "languageCode" | "responseModalities" | "multiSpeakerVoiceConfig";
 
 /**
  * Music-generation option keys exported for dynamic UI/config generation.
@@ -340,6 +335,49 @@ export interface GeminiTextModelCapabilities {
    * Which config keys are intentionally unsupported for this model.
    */
   unsupportedOptions: readonly GeminiTextConfigOptionKey[];
+}
+
+/**
+ * Feature hints for model-based Interactions API calls.
+ */
+export interface GeminiInteractionFeatureFlags {
+  supportsServerSideState: boolean;
+  supportsStreaming: boolean;
+  supportsBackground: boolean;
+  supportsTools: boolean;
+  supportsMultimodalInput: boolean;
+  supportsMultimodalOutput: boolean;
+  storesByDefault: boolean;
+}
+
+/**
+ * Canonical capability payload for Interactions API models.
+ */
+export interface GeminiInteractionModelCapabilities {
+  /**
+   * Raw model id requested by the caller.
+   */
+  model: string;
+  /**
+   * True when the model exists in the known Interactions model catalog.
+   */
+  isKnownModel: boolean;
+  /**
+   * Indicates whether this record comes from catalog data or a fallback.
+   */
+  source: GeminiCapabilitySource;
+  /**
+   * Generic feature hints for Interactions requests.
+   */
+  featureFlags: GeminiInteractionFeatureFlags;
+  /**
+   * Which config keys are available for this model.
+   */
+  supportedOptions: readonly GeminiInteractionConfigOptionKey[];
+  /**
+   * Which config keys are intentionally unsupported for this model.
+   */
+  unsupportedOptions: readonly GeminiInteractionConfigOptionKey[];
 }
 
 /**
@@ -797,10 +835,7 @@ export interface GeminiLiveModelCapabilities {
  * Complete image config option catalog.
  * Consumers can filter this per model with `getImageModelConfigOptions(...)`.
  */
-export const GEMINI_IMAGE_CONFIG_OPTIONS: Record<
-  GeminiImageConfigOptionKey,
-  GeminiConfigOptionDescriptor<GeminiImageConfigOptionKey>
-> = {
+export const GEMINI_IMAGE_CONFIG_OPTIONS: Record<GeminiImageConfigOptionKey, GeminiConfigOptionDescriptor<GeminiImageConfigOptionKey>> = {
   /**
    * Image width:height ratio preference.
    */
@@ -907,10 +942,7 @@ export const GEMINI_IMAGE_CONFIG_OPTIONS: Record<
  * Complete text config option catalog.
  * Consumers can filter this per model with `getTextModelConfigOptions(...)`.
  */
-export const GEMINI_TEXT_CONFIG_OPTIONS: Record<
-  GeminiTextConfigOptionKey,
-  GeminiConfigOptionDescriptor<GeminiTextConfigOptionKey>
-> = {
+export const GEMINI_TEXT_CONFIG_OPTIONS: Record<GeminiTextConfigOptionKey, GeminiConfigOptionDescriptor<GeminiTextConfigOptionKey>> = {
   /**
    * Sampling temperature for response creativity vs determinism.
    */
@@ -983,13 +1015,145 @@ export const GEMINI_TEXT_CONFIG_OPTIONS: Record<
 };
 
 /**
+ * Complete Interactions config option catalog.
+ * Consumers can filter this per model with `getInteractionModelConfigOptions(...)`.
+ */
+export const GEMINI_INTERACTION_CONFIG_OPTIONS: Record<GeminiInteractionConfigOptionKey, GeminiConfigOptionDescriptor<GeminiInteractionConfigOptionKey>> = {
+  /**
+   * Top-level behavioral/system instruction for the interaction.
+   */
+  system_instruction: {
+    key: "system_instruction",
+    label: "System instruction",
+    description: "Defines assistant behavior and constraints for the interaction.",
+    kind: "string",
+  },
+  /**
+   * Model generation parameters for interaction requests.
+   */
+  generation_config: {
+    key: "generation_config",
+    label: "Generation config",
+    description: "Supplies model generation parameters such as temperature, max output tokens, seed, or image config.",
+    kind: "object",
+  },
+  /**
+   * Tool declarations available for model tool calling.
+   */
+  tools: {
+    key: "tools",
+    label: "Tools",
+    description: "Defines callable tools available to the model or agent during the interaction.",
+    kind: "array",
+  },
+  /**
+   * JSON schema response format for structured interaction output.
+   */
+  response_format: {
+    key: "response_format",
+    label: "Response format",
+    description: "Supplies a JSON schema-like response format for structured interaction output.",
+    kind: "object",
+  },
+  /**
+   * MIME type for structured or text response channels.
+   */
+  response_mime_type: {
+    key: "response_mime_type",
+    label: "Response MIME type",
+    description: "Sets the response MIME type, required when response_format is set.",
+    kind: "string",
+    defaultValue: "text/plain",
+  },
+  /**
+   * Requested response modalities for multimodal interaction output.
+   */
+  response_modalities: {
+    key: "response_modalities",
+    label: "Response modalities",
+    description: "Controls whether the interaction may return text, image, audio, video, or document output.",
+    kind: "array",
+    allowedValues: ["text", "image", "audio", "video", "document"],
+    defaultValue: ["text"],
+  },
+  /**
+   * Previous interaction id used for server-side state.
+   */
+  previous_interaction_id: {
+    key: "previous_interaction_id",
+    label: "Previous interaction id",
+    description: "Continues a stateful conversation from a previous stored interaction.",
+    kind: "string",
+    note: "Server-side state requires stored interactions.",
+  },
+  /**
+   * Whether Gemini should store request/response state.
+   */
+  store: {
+    key: "store",
+    label: "Store interaction",
+    description: "Controls whether the interaction is stored for retrieval, stateful continuation, and background flows.",
+    kind: "boolean",
+    defaultValue: true,
+    note: "The Interactions API stores objects by default. Set false to opt out when state/background behavior is not needed.",
+  },
+  /**
+   * Whether to return an incremental event stream.
+   */
+  stream: {
+    key: "stream",
+    label: "Stream",
+    description: "Returns incremental SSE events instead of a completed interaction response.",
+    kind: "boolean",
+    defaultValue: false,
+  },
+  /**
+   * Whether to run the interaction asynchronously in the background.
+   */
+  background: {
+    key: "background",
+    label: "Background",
+    description: "Runs the interaction in the background for long-running model or agent tasks.",
+    kind: "boolean",
+    defaultValue: false,
+  },
+  /**
+   * Requested service tier.
+   */
+  service_tier: {
+    key: "service_tier",
+    label: "Service tier",
+    description: "Selects the service tier for the interaction request.",
+    kind: "string",
+    allowedValues: ["flex", "standard", "priority"],
+    defaultValue: "standard",
+  },
+  /**
+   * Webhook callback configuration.
+   */
+  webhook_config: {
+    key: "webhook_config",
+    label: "Webhook config",
+    description: "Configures a callback used when a background interaction completes.",
+    kind: "object",
+  },
+  /**
+   * Agent-specific configuration.
+   */
+  agent_config: {
+    key: "agent_config",
+    label: "Agent config",
+    description: "Supplies configuration for agent-based interactions such as Deep Research.",
+    kind: "object",
+    note: "This applies to agent interactions, not ordinary model interactions.",
+  },
+};
+
+/**
  * Complete embedding config option catalog.
  * Consumers can filter this per model with `getEmbeddingModelConfigOptions(...)`.
  */
-export const GEMINI_EMBEDDING_CONFIG_OPTIONS: Record<
-  GeminiEmbeddingConfigOptionKey,
-  GeminiConfigOptionDescriptor<GeminiEmbeddingConfigOptionKey>
-> = {
+export const GEMINI_EMBEDDING_CONFIG_OPTIONS: Record<GeminiEmbeddingConfigOptionKey, GeminiConfigOptionDescriptor<GeminiEmbeddingConfigOptionKey>> = {
   /**
    * Task type used to optimize embeddings for a specific downstream task.
    */
@@ -998,16 +1162,7 @@ export const GEMINI_EMBEDDING_CONFIG_OPTIONS: Record<
     label: "Task type",
     description: "Optimizes embeddings for retrieval, similarity, classification, clustering, and related tasks.",
     kind: "string",
-    allowedValues: [
-      "RETRIEVAL_QUERY",
-      "RETRIEVAL_DOCUMENT",
-      "SEMANTIC_SIMILARITY",
-      "CLASSIFICATION",
-      "CLUSTERING",
-      "CODE_RETRIEVAL_QUERY",
-      "QUESTION_ANSWERING",
-      "FACT_VERIFICATION",
-    ],
+    allowedValues: ["RETRIEVAL_QUERY", "RETRIEVAL_DOCUMENT", "SEMANTIC_SIMILARITY", "CLASSIFICATION", "CLUSTERING", "CODE_RETRIEVAL_QUERY", "QUESTION_ANSWERING", "FACT_VERIFICATION"],
     defaultValue: "RETRIEVAL_QUERY",
   },
   /**
@@ -1040,10 +1195,7 @@ export const GEMINI_EMBEDDING_CONFIG_OPTIONS: Record<
  * Complete audio/TTS config option catalog.
  * Consumers can filter this per model with `getAudioModelConfigOptions(...)`.
  */
-export const GEMINI_AUDIO_CONFIG_OPTIONS: Record<
-  GeminiAudioConfigOptionKey,
-  GeminiConfigOptionDescriptor<GeminiAudioConfigOptionKey>
-> = {
+export const GEMINI_AUDIO_CONFIG_OPTIONS: Record<GeminiAudioConfigOptionKey, GeminiConfigOptionDescriptor<GeminiAudioConfigOptionKey>> = {
   /**
    * Prebuilt voice name used for single-speaker synthesis.
    */
@@ -1072,8 +1224,7 @@ export const GEMINI_AUDIO_CONFIG_OPTIONS: Record<
   responseModalities: {
     key: "responseModalities",
     label: "Response modalities",
-    description:
-      "Controls the requested response modalities for the TTS call. TTS models are expected to return audio.",
+    description: "Controls the requested response modalities for the TTS call. TTS models are expected to return audio.",
     kind: "array",
     allowedValues: ["AUDIO"],
     defaultValue: ["AUDIO"],
@@ -1095,18 +1246,14 @@ export const GEMINI_AUDIO_CONFIG_OPTIONS: Record<
  * Complete music-generation config option catalog.
  * Consumers can filter this per model with `getMusicModelConfigOptions(...)`.
  */
-export const GEMINI_MUSIC_CONFIG_OPTIONS: Record<
-  GeminiMusicConfigOptionKey,
-  GeminiConfigOptionDescriptor<GeminiMusicConfigOptionKey>
-> = {
+export const GEMINI_MUSIC_CONFIG_OPTIONS: Record<GeminiMusicConfigOptionKey, GeminiConfigOptionDescriptor<GeminiMusicConfigOptionKey>> = {
   /**
    * Requested response modalities for the Lyria response.
    */
   responseModalities: {
     key: "responseModalities",
     label: "Response modalities",
-    description:
-      "Controls whether Lyria returns audio, text metadata, or both through the stable generateContent flow.",
+    description: "Controls whether Lyria returns audio, text metadata, or both through the stable generateContent flow.",
     kind: "array",
     allowedValues: ["AUDIO", "TEXT"],
     defaultValue: ["AUDIO", "TEXT"],
@@ -1118,10 +1265,7 @@ export const GEMINI_MUSIC_CONFIG_OPTIONS: Record<
  * Complete video config option catalog.
  * Consumers can filter this per model with `getVideoModelConfigOptions(...)`.
  */
-export const GEMINI_VIDEO_CONFIG_OPTIONS: Record<
-  GeminiVideoConfigOptionKey,
-  GeminiConfigOptionDescriptor<GeminiVideoConfigOptionKey>
-> = {
+export const GEMINI_VIDEO_CONFIG_OPTIONS: Record<GeminiVideoConfigOptionKey, GeminiConfigOptionDescriptor<GeminiVideoConfigOptionKey>> = {
   /**
    * Controls the output video aspect ratio.
    */
@@ -1242,10 +1386,7 @@ export const GEMINI_VIDEO_CONFIG_OPTIONS: Record<
  * Complete live-session config option catalog.
  * Consumers can filter this per model with `getLiveModelConfigOptions(...)`.
  */
-export const GEMINI_LIVE_CONFIG_OPTIONS: Record<
-  GeminiLiveConfigOptionKey,
-  GeminiConfigOptionDescriptor<GeminiLiveConfigOptionKey>
-> = {
+export const GEMINI_LIVE_CONFIG_OPTIONS: Record<GeminiLiveConfigOptionKey, GeminiConfigOptionDescriptor<GeminiLiveConfigOptionKey>> = {
   /**
    * Top-level behavioral/system instruction for the live assistant.
    */
@@ -1353,41 +1494,18 @@ export const GEMINI_LIVE_CONFIG_OPTIONS: Record<
 
 const IMAGE_OPTION_KEYS = Object.keys(GEMINI_IMAGE_CONFIG_OPTIONS) as GeminiImageConfigOptionKey[];
 const TEXT_OPTION_KEYS = Object.keys(GEMINI_TEXT_CONFIG_OPTIONS) as GeminiTextConfigOptionKey[];
+const INTERACTION_OPTION_KEYS = Object.keys(GEMINI_INTERACTION_CONFIG_OPTIONS) as GeminiInteractionConfigOptionKey[];
 const EMBEDDING_OPTION_KEYS = Object.keys(GEMINI_EMBEDDING_CONFIG_OPTIONS) as GeminiEmbeddingConfigOptionKey[];
 const AUDIO_OPTION_KEYS = Object.keys(GEMINI_AUDIO_CONFIG_OPTIONS) as GeminiAudioConfigOptionKey[];
 const MUSIC_OPTION_KEYS = Object.keys(GEMINI_MUSIC_CONFIG_OPTIONS) as GeminiMusicConfigOptionKey[];
 const VIDEO_OPTION_KEYS = Object.keys(GEMINI_VIDEO_CONFIG_OPTIONS) as GeminiVideoConfigOptionKey[];
 const LIVE_OPTION_KEYS = Object.keys(GEMINI_LIVE_CONFIG_OPTIONS) as GeminiLiveConfigOptionKey[];
 
-const GEMINI_25_FLASH_IMAGE_ASPECT_RATIOS: readonly GeminiFlashAspectRatio[] = [
-  "1:1",
-  "2:3",
-  "3:2",
-  "3:4",
-  "4:3",
-  "4:5",
-  "5:4",
-  "9:16",
-  "16:9",
-  "21:9",
-];
+const INTERACTION_MODEL_OPTION_KEYS = INTERACTION_OPTION_KEYS.filter((optionKey) => optionKey !== "agent_config");
 
-const FLASH_IMAGE_ASPECT_RATIOS: readonly GeminiFlashAspectRatio[] = [
-  "1:1",
-  "1:4",
-  "1:8",
-  "2:3",
-  "3:2",
-  "3:4",
-  "4:1",
-  "4:3",
-  "4:5",
-  "5:4",
-  "8:1",
-  "9:16",
-  "16:9",
-  "21:9",
-];
+const GEMINI_25_FLASH_IMAGE_ASPECT_RATIOS: readonly GeminiFlashAspectRatio[] = ["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"];
+
+const FLASH_IMAGE_ASPECT_RATIOS: readonly GeminiFlashAspectRatio[] = ["1:1", "1:4", "1:8", "2:3", "3:2", "3:4", "4:1", "4:3", "4:5", "5:4", "8:1", "9:16", "16:9", "21:9"];
 
 const IMAGEN_IMAGE_ASPECT_RATIOS = ["1:1", "3:4", "4:3", "9:16", "16:9"] as const;
 const GEMINI_25_FLASH_IMAGE_SIZES = ["1K"] as const satisfies readonly GeminiImageSize[];
@@ -1413,6 +1531,27 @@ function toUnsupportedOptions<T extends string>(supportedOptions: readonly T[], 
   return allOptions.filter((option) => !supportedSet.has(option));
 }
 
+const COMMON_INTERACTION_FEATURE_FLAGS: GeminiInteractionFeatureFlags = {
+  supportsServerSideState: true,
+  supportsStreaming: true,
+  supportsBackground: true,
+  supportsTools: true,
+  supportsMultimodalInput: true,
+  supportsMultimodalOutput: true,
+  storesByDefault: true,
+};
+
+function createKnownInteractionModelCapabilities(model: KnownInteractionModel): GeminiInteractionModelCapabilities {
+  return {
+    model,
+    isKnownModel: true,
+    source: "catalog",
+    featureFlags: COMMON_INTERACTION_FEATURE_FLAGS,
+    supportedOptions: INTERACTION_MODEL_OPTION_KEYS,
+    unsupportedOptions: [],
+  };
+}
+
 const KNOWN_IMAGE_MODEL_CAPABILITIES: Record<KnownImageGenerationModel, GeminiImageModelCapabilities> = {
   "gemini-2.5-flash-image": {
     model: "gemini-2.5-flash-image",
@@ -1426,14 +1565,7 @@ const KNOWN_IMAGE_MODEL_CAPABILITIES: Record<KnownImageGenerationModel, GeminiIm
       maxImages: 10,
       defaultImages: 1,
     },
-    supportedOptions: [
-      "aspectRatio",
-      "imageSize",
-      "personGeneration",
-      "responseModalities",
-      "responseMimeType",
-      "responseSchema",
-    ],
+    supportedOptions: ["aspectRatio", "imageSize", "personGeneration", "responseModalities", "responseMimeType", "responseSchema"],
     unsupportedOptions: [],
     allowedAspectRatios: GEMINI_25_FLASH_IMAGE_ASPECT_RATIOS,
     allowedImageSizes: GEMINI_25_FLASH_IMAGE_SIZES,
@@ -1452,14 +1584,7 @@ const KNOWN_IMAGE_MODEL_CAPABILITIES: Record<KnownImageGenerationModel, GeminiIm
       maxImages: 10,
       defaultImages: 1,
     },
-    supportedOptions: [
-      "aspectRatio",
-      "imageSize",
-      "personGeneration",
-      "responseModalities",
-      "responseMimeType",
-      "responseSchema",
-    ],
+    supportedOptions: ["aspectRatio", "imageSize", "personGeneration", "responseModalities", "responseMimeType", "responseSchema"],
     unsupportedOptions: [],
     allowedAspectRatios: FLASH_IMAGE_ASPECT_RATIOS,
     allowedImageSizes: GEMINI_31_FLASH_IMAGE_SIZES,
@@ -1478,14 +1603,7 @@ const KNOWN_IMAGE_MODEL_CAPABILITIES: Record<KnownImageGenerationModel, GeminiIm
       maxImages: 4,
       defaultImages: 1,
     },
-    supportedOptions: [
-      "aspectRatio",
-      "imageSize",
-      "personGeneration",
-      "responseModalities",
-      "responseMimeType",
-      "responseSchema",
-    ],
+    supportedOptions: ["aspectRatio", "imageSize", "personGeneration", "responseModalities", "responseMimeType", "responseSchema"],
     unsupportedOptions: [],
     allowedAspectRatios: FLASH_IMAGE_ASPECT_RATIOS,
     allowedImageSizes: GEMINI_3_PRO_IMAGE_SIZES,
@@ -1504,14 +1622,7 @@ const KNOWN_IMAGE_MODEL_CAPABILITIES: Record<KnownImageGenerationModel, GeminiIm
       maxImages: 4,
       defaultImages: 1,
     },
-    supportedOptions: [
-      "aspectRatio",
-      "imageSize",
-      "numberOfImages",
-      "personGeneration",
-      "outputMimeType",
-      "compressionQuality",
-    ],
+    supportedOptions: ["aspectRatio", "imageSize", "numberOfImages", "personGeneration", "outputMimeType", "compressionQuality"],
     unsupportedOptions: [],
     allowedAspectRatios: IMAGEN_IMAGE_ASPECT_RATIOS,
     allowedImageSizes: IMAGEN_IMAGE_SIZES,
@@ -1600,6 +1711,10 @@ const KNOWN_TEXT_MODEL_CAPABILITIES: Record<KnownTextGenerationModel, GeminiText
     unsupportedOptions: [],
   },
 };
+
+const KNOWN_INTERACTION_MODEL_CAPABILITIES: Record<KnownInteractionModel, GeminiInteractionModelCapabilities> = Object.fromEntries(
+  GEMINI_INTERACTION_MODELS.map((model) => [model, createKnownInteractionModelCapabilities(model)]),
+) as Record<KnownInteractionModel, GeminiInteractionModelCapabilities>;
 
 const EMBEDDING_TASK_TYPES: readonly GeminiEmbeddingTaskType[] = [
   "RETRIEVAL_QUERY",
@@ -1817,8 +1932,7 @@ const KNOWN_VIDEO_MODEL_CAPABILITIES: Record<KnownVideoGenerationModel, GeminiVi
   },
 };
 
-const LIVE_MODEL_THINKING_SUPPORT =
-  getGeminiThinkingSupportForModel("gemini-2.5-flash-native-audio-preview-12-2025") ?? null;
+const LIVE_MODEL_THINKING_SUPPORT = getGeminiThinkingSupportForModel("gemini-2.5-flash-native-audio-preview-12-2025") ?? null;
 
 const KNOWN_LIVE_MODEL_CAPABILITIES: Record<KnownLiveGenerationModel, GeminiLiveModelCapabilities> = {
   "gemini-2.5-flash-native-audio-preview-12-2025": {
@@ -1835,10 +1949,8 @@ const KNOWN_LIVE_MODEL_CAPABILITIES: Record<KnownLiveGenerationModel, GeminiLive
       supportsVadConfig: true,
     },
     limits: {
-      minThinkingBudget:
-        LIVE_MODEL_THINKING_SUPPORT?.parameter === "thinkingBudget" ? LIVE_MODEL_THINKING_SUPPORT.minBudget : null,
-      maxThinkingBudget:
-        LIVE_MODEL_THINKING_SUPPORT?.parameter === "thinkingBudget" ? LIVE_MODEL_THINKING_SUPPORT.maxBudget : null,
+      minThinkingBudget: LIVE_MODEL_THINKING_SUPPORT?.parameter === "thinkingBudget" ? LIVE_MODEL_THINKING_SUPPORT.minBudget : null,
+      maxThinkingBudget: LIVE_MODEL_THINKING_SUPPORT?.parameter === "thinkingBudget" ? LIVE_MODEL_THINKING_SUPPORT.maxBudget : null,
     },
     supportedOptions: LIVE_OPTION_KEYS,
     unsupportedOptions: [],
@@ -1846,99 +1958,76 @@ const KNOWN_LIVE_MODEL_CAPABILITIES: Record<KnownLiveGenerationModel, GeminiLive
 };
 
 for (const model of GEMINI_IMAGE_MODELS) {
-  KNOWN_IMAGE_MODEL_CAPABILITIES[model].unsupportedOptions = toUnsupportedOptions(
-    KNOWN_IMAGE_MODEL_CAPABILITIES[model].supportedOptions,
-    IMAGE_OPTION_KEYS,
-  );
+  KNOWN_IMAGE_MODEL_CAPABILITIES[model].unsupportedOptions = toUnsupportedOptions(KNOWN_IMAGE_MODEL_CAPABILITIES[model].supportedOptions, IMAGE_OPTION_KEYS);
 }
 
 for (const model of GEMINI_TEXT_MODELS) {
-  KNOWN_TEXT_MODEL_CAPABILITIES[model].unsupportedOptions = toUnsupportedOptions(
-    KNOWN_TEXT_MODEL_CAPABILITIES[model].supportedOptions,
-    TEXT_OPTION_KEYS,
-  );
+  KNOWN_TEXT_MODEL_CAPABILITIES[model].unsupportedOptions = toUnsupportedOptions(KNOWN_TEXT_MODEL_CAPABILITIES[model].supportedOptions, TEXT_OPTION_KEYS);
+}
+
+for (const model of GEMINI_INTERACTION_MODELS) {
+  KNOWN_INTERACTION_MODEL_CAPABILITIES[model].unsupportedOptions = toUnsupportedOptions(KNOWN_INTERACTION_MODEL_CAPABILITIES[model].supportedOptions, INTERACTION_OPTION_KEYS);
 }
 
 for (const model of GEMINI_EMBEDDING_MODELS) {
-  KNOWN_EMBEDDING_MODEL_CAPABILITIES[model].unsupportedOptions = toUnsupportedOptions(
-    KNOWN_EMBEDDING_MODEL_CAPABILITIES[model].supportedOptions,
-    EMBEDDING_OPTION_KEYS,
-  );
+  KNOWN_EMBEDDING_MODEL_CAPABILITIES[model].unsupportedOptions = toUnsupportedOptions(KNOWN_EMBEDDING_MODEL_CAPABILITIES[model].supportedOptions, EMBEDDING_OPTION_KEYS);
 }
 
 for (const model of GEMINI_AUDIO_MODELS) {
-  KNOWN_AUDIO_MODEL_CAPABILITIES[model].unsupportedOptions = toUnsupportedOptions(
-    KNOWN_AUDIO_MODEL_CAPABILITIES[model].supportedOptions,
-    AUDIO_OPTION_KEYS,
-  );
+  KNOWN_AUDIO_MODEL_CAPABILITIES[model].unsupportedOptions = toUnsupportedOptions(KNOWN_AUDIO_MODEL_CAPABILITIES[model].supportedOptions, AUDIO_OPTION_KEYS);
 }
 
 for (const model of GEMINI_MUSIC_MODELS) {
-  KNOWN_MUSIC_MODEL_CAPABILITIES[model].unsupportedOptions = toUnsupportedOptions(
-    KNOWN_MUSIC_MODEL_CAPABILITIES[model].supportedOptions,
-    MUSIC_OPTION_KEYS,
-  );
+  KNOWN_MUSIC_MODEL_CAPABILITIES[model].unsupportedOptions = toUnsupportedOptions(KNOWN_MUSIC_MODEL_CAPABILITIES[model].supportedOptions, MUSIC_OPTION_KEYS);
 }
 
 for (const model of GEMINI_VIDEO_MODELS) {
-  KNOWN_VIDEO_MODEL_CAPABILITIES[model].unsupportedOptions = toUnsupportedOptions(
-    KNOWN_VIDEO_MODEL_CAPABILITIES[model].supportedOptions,
-    VIDEO_OPTION_KEYS,
-  );
+  KNOWN_VIDEO_MODEL_CAPABILITIES[model].unsupportedOptions = toUnsupportedOptions(KNOWN_VIDEO_MODEL_CAPABILITIES[model].supportedOptions, VIDEO_OPTION_KEYS);
 }
 
 for (const model of GEMINI_LIVE_MODELS) {
-  KNOWN_LIVE_MODEL_CAPABILITIES[model].unsupportedOptions = toUnsupportedOptions(
-    KNOWN_LIVE_MODEL_CAPABILITIES[model].supportedOptions,
-    LIVE_OPTION_KEYS,
-  );
+  KNOWN_LIVE_MODEL_CAPABILITIES[model].unsupportedOptions = toUnsupportedOptions(KNOWN_LIVE_MODEL_CAPABILITIES[model].supportedOptions, LIVE_OPTION_KEYS);
 }
 
 /**
  * Public image-capability catalog keyed by known image model IDs.
  */
-export const GEMINI_IMAGE_MODEL_CAPABILITIES: Readonly<
-  Record<KnownImageGenerationModel, GeminiImageModelCapabilities>
-> = KNOWN_IMAGE_MODEL_CAPABILITIES;
+export const GEMINI_IMAGE_MODEL_CAPABILITIES: Readonly<Record<KnownImageGenerationModel, GeminiImageModelCapabilities>> = KNOWN_IMAGE_MODEL_CAPABILITIES;
 
 /**
  * Public text-capability catalog keyed by known text model IDs.
  */
-export const GEMINI_TEXT_MODEL_CAPABILITIES: Readonly<Record<KnownTextGenerationModel, GeminiTextModelCapabilities>> =
-  KNOWN_TEXT_MODEL_CAPABILITIES;
+export const GEMINI_TEXT_MODEL_CAPABILITIES: Readonly<Record<KnownTextGenerationModel, GeminiTextModelCapabilities>> = KNOWN_TEXT_MODEL_CAPABILITIES;
+
+/**
+ * Public Interactions model capability catalog keyed by known model IDs.
+ */
+export const GEMINI_INTERACTION_MODEL_CAPABILITIES: Readonly<Record<KnownInteractionModel, GeminiInteractionModelCapabilities>> = KNOWN_INTERACTION_MODEL_CAPABILITIES;
 
 /**
  * Public embedding capability catalog keyed by known embedding model IDs.
  */
-export const GEMINI_EMBEDDING_MODEL_CAPABILITIES: Readonly<Record<KnownEmbeddingModel, GeminiEmbeddingModelCapabilities>> =
-  KNOWN_EMBEDDING_MODEL_CAPABILITIES;
+export const GEMINI_EMBEDDING_MODEL_CAPABILITIES: Readonly<Record<KnownEmbeddingModel, GeminiEmbeddingModelCapabilities>> = KNOWN_EMBEDDING_MODEL_CAPABILITIES;
 
 /**
  * Public audio/TTS capability catalog keyed by known audio model IDs.
  */
-export const GEMINI_AUDIO_MODEL_CAPABILITIES: Readonly<
-  Record<KnownAudioGenerationModel, GeminiAudioModelCapabilities>
-> = KNOWN_AUDIO_MODEL_CAPABILITIES;
+export const GEMINI_AUDIO_MODEL_CAPABILITIES: Readonly<Record<KnownAudioGenerationModel, GeminiAudioModelCapabilities>> = KNOWN_AUDIO_MODEL_CAPABILITIES;
 
 /**
  * Public music-generation capability catalog keyed by known music model IDs.
  */
-export const GEMINI_MUSIC_MODEL_CAPABILITIES: Readonly<
-  Record<KnownMusicGenerationModel, GeminiMusicModelCapabilities>
-> = KNOWN_MUSIC_MODEL_CAPABILITIES;
+export const GEMINI_MUSIC_MODEL_CAPABILITIES: Readonly<Record<KnownMusicGenerationModel, GeminiMusicModelCapabilities>> = KNOWN_MUSIC_MODEL_CAPABILITIES;
 
 /**
  * Public video-capability catalog keyed by known video model IDs.
  */
-export const GEMINI_VIDEO_MODEL_CAPABILITIES: Readonly<
-  Record<KnownVideoGenerationModel, GeminiVideoModelCapabilities>
-> = KNOWN_VIDEO_MODEL_CAPABILITIES;
+export const GEMINI_VIDEO_MODEL_CAPABILITIES: Readonly<Record<KnownVideoGenerationModel, GeminiVideoModelCapabilities>> = KNOWN_VIDEO_MODEL_CAPABILITIES;
 
 /**
  * Public live-capability catalog keyed by known live model IDs.
  */
-export const GEMINI_LIVE_MODEL_CAPABILITIES: Readonly<Record<KnownLiveGenerationModel, GeminiLiveModelCapabilities>> =
-  KNOWN_LIVE_MODEL_CAPABILITIES;
+export const GEMINI_LIVE_MODEL_CAPABILITIES: Readonly<Record<KnownLiveGenerationModel, GeminiLiveModelCapabilities>> = KNOWN_LIVE_MODEL_CAPABILITIES;
 
 const IMAGE_FALLBACK_CAPABILITIES: GeminiImageModelCapabilities = {
   model: "unknown",
@@ -1953,10 +2042,7 @@ const IMAGE_FALLBACK_CAPABILITIES: GeminiImageModelCapabilities = {
     defaultImages: 1,
   },
   supportedOptions: ["aspectRatio", "imageSize", "responseModalities", "responseMimeType", "responseSchema"],
-  unsupportedOptions: toUnsupportedOptions(
-    ["aspectRatio", "imageSize", "responseModalities", "responseMimeType", "responseSchema"],
-    IMAGE_OPTION_KEYS,
-  ),
+  unsupportedOptions: toUnsupportedOptions(["aspectRatio", "imageSize", "responseModalities", "responseMimeType", "responseSchema"], IMAGE_OPTION_KEYS),
   allowedAspectRatios: GEMINI_25_FLASH_IMAGE_ASPECT_RATIOS,
   allowedImageSizes: GEMINI_25_FLASH_IMAGE_SIZES,
   allowedOutputMimeTypes: [],
@@ -1980,6 +2066,15 @@ const TEXT_FALLBACK_CAPABILITIES: GeminiTextModelCapabilities = {
     supportedLevels: [],
   },
   supportedOptions: TEXT_OPTION_KEYS,
+  unsupportedOptions: [],
+};
+
+const INTERACTION_FALLBACK_CAPABILITIES: GeminiInteractionModelCapabilities = {
+  model: "unknown",
+  isKnownModel: false,
+  source: "fallback",
+  featureFlags: COMMON_INTERACTION_FEATURE_FLAGS,
+  supportedOptions: INTERACTION_OPTION_KEYS,
   unsupportedOptions: [],
 };
 
@@ -2098,10 +2193,7 @@ const LIVE_FALLBACK_CAPABILITIES: GeminiLiveModelCapabilities = {
     maxThinkingBudget: null,
   },
   supportedOptions: ["systemInstruction", "voiceName", "tools", "thinkingBudget", "includeThoughts", "vadConfig"],
-  unsupportedOptions: toUnsupportedOptions(
-    ["systemInstruction", "voiceName", "tools", "thinkingBudget", "includeThoughts", "vadConfig"],
-    LIVE_OPTION_KEYS,
-  ),
+  unsupportedOptions: toUnsupportedOptions(["systemInstruction", "voiceName", "tools", "thinkingBudget", "includeThoughts", "vadConfig"], LIVE_OPTION_KEYS),
 };
 
 function normalizeModelId(modelId: string | null | undefined) {
@@ -2114,6 +2206,10 @@ function isKnownImageModel(modelId: string): modelId is KnownImageGenerationMode
 
 function isKnownTextModel(modelId: string): modelId is KnownTextGenerationModel {
   return (GEMINI_TEXT_MODELS as readonly string[]).includes(modelId);
+}
+
+function isKnownInteractionModel(modelId: string): modelId is KnownInteractionModel {
+  return (GEMINI_INTERACTION_MODELS as readonly string[]).includes(modelId);
 }
 
 function isKnownEmbeddingModel(modelId: string): modelId is KnownEmbeddingModel {
@@ -2164,6 +2260,22 @@ export function getTextModelCapabilities(modelId: string): GeminiTextModelCapabi
 
   return {
     ...TEXT_FALLBACK_CAPABILITIES,
+    model: normalizedModel || modelId || "unknown",
+  };
+}
+
+/**
+ * Resolve Interactions model capabilities for known and unknown model IDs.
+ * Unknown models return a permissive fallback and never throw.
+ */
+export function getInteractionModelCapabilities(modelId: string): GeminiInteractionModelCapabilities {
+  const normalizedModel = normalizeModelId(modelId);
+  if (isKnownInteractionModel(normalizedModel)) {
+    return GEMINI_INTERACTION_MODEL_CAPABILITIES[normalizedModel];
+  }
+
+  return {
+    ...INTERACTION_FALLBACK_CAPABILITIES,
     model: normalizedModel || modelId || "unknown",
   };
 }
@@ -2251,9 +2363,7 @@ export function getLiveModelCapabilities(modelId: string): GeminiLiveModelCapabi
 /**
  * Returns model-filtered image option descriptors with per-model constraints merged in.
  */
-export function getImageModelConfigOptions(
-  modelId: string,
-): Array<GeminiConfigOptionDescriptor<GeminiImageConfigOptionKey>> {
+export function getImageModelConfigOptions(modelId: string): Array<GeminiConfigOptionDescriptor<GeminiImageConfigOptionKey>> {
   const capabilities = getImageModelCapabilities(modelId);
 
   return capabilities.supportedOptions.map((optionKey) => {
@@ -2303,20 +2413,24 @@ export function getImageModelConfigOptions(
 /**
  * Returns model-filtered text option descriptors.
  */
-export function getTextModelConfigOptions(
-  modelId: string,
-): Array<GeminiConfigOptionDescriptor<GeminiTextConfigOptionKey>> {
+export function getTextModelConfigOptions(modelId: string): Array<GeminiConfigOptionDescriptor<GeminiTextConfigOptionKey>> {
   const capabilities = getTextModelCapabilities(modelId);
   return capabilities.supportedOptions.map((optionKey) => GEMINI_TEXT_CONFIG_OPTIONS[optionKey]);
+}
+
+/**
+ * Returns model-filtered Interactions option descriptors.
+ */
+export function getInteractionModelConfigOptions(modelId: string): Array<GeminiConfigOptionDescriptor<GeminiInteractionConfigOptionKey>> {
+  const capabilities = getInteractionModelCapabilities(modelId);
+  return capabilities.supportedOptions.map((optionKey) => GEMINI_INTERACTION_CONFIG_OPTIONS[optionKey]);
 }
 
 /**
  * Returns model-filtered embedding option descriptors with per-model
  * constraints merged in.
  */
-export function getEmbeddingModelConfigOptions(
-  modelId: string,
-): Array<GeminiConfigOptionDescriptor<GeminiEmbeddingConfigOptionKey>> {
+export function getEmbeddingModelConfigOptions(modelId: string): Array<GeminiConfigOptionDescriptor<GeminiEmbeddingConfigOptionKey>> {
   const capabilities = getEmbeddingModelCapabilities(modelId);
 
   return capabilities.supportedOptions.map((optionKey) => {
@@ -2347,9 +2461,7 @@ export function getEmbeddingModelConfigOptions(
  * Returns model-filtered audio/TTS option descriptors with per-model
  * constraints merged in.
  */
-export function getAudioModelConfigOptions(
-  modelId: string,
-): Array<GeminiConfigOptionDescriptor<GeminiAudioConfigOptionKey>> {
+export function getAudioModelConfigOptions(modelId: string): Array<GeminiConfigOptionDescriptor<GeminiAudioConfigOptionKey>> {
   const capabilities = getAudioModelCapabilities(modelId);
 
   return capabilities.supportedOptions.map((optionKey) => {
@@ -2370,9 +2482,7 @@ export function getAudioModelConfigOptions(
  * Returns model-filtered music option descriptors with per-model constraints
  * merged in.
  */
-export function getMusicModelConfigOptions(
-  modelId: string,
-): Array<GeminiConfigOptionDescriptor<GeminiMusicConfigOptionKey>> {
+export function getMusicModelConfigOptions(modelId: string): Array<GeminiConfigOptionDescriptor<GeminiMusicConfigOptionKey>> {
   const capabilities = getMusicModelCapabilities(modelId);
 
   return capabilities.supportedOptions.map((optionKey) => {
@@ -2393,9 +2503,7 @@ export function getMusicModelConfigOptions(
  * Returns model-filtered video option descriptors with per-model constraints
  * merged in.
  */
-export function getVideoModelConfigOptions(
-  modelId: string,
-): Array<GeminiConfigOptionDescriptor<GeminiVideoConfigOptionKey>> {
+export function getVideoModelConfigOptions(modelId: string): Array<GeminiConfigOptionDescriptor<GeminiVideoConfigOptionKey>> {
   const capabilities = getVideoModelCapabilities(modelId);
 
   return capabilities.supportedOptions.map((optionKey) => {
@@ -2454,9 +2562,7 @@ export function getVideoModelConfigOptions(
 /**
  * Returns model-filtered live option descriptors with per-model constraints merged in.
  */
-export function getLiveModelConfigOptions(
-  modelId: string,
-): Array<GeminiConfigOptionDescriptor<GeminiLiveConfigOptionKey>> {
+export function getLiveModelConfigOptions(modelId: string): Array<GeminiConfigOptionDescriptor<GeminiLiveConfigOptionKey>> {
   const capabilities = getLiveModelCapabilities(modelId);
 
   return capabilities.supportedOptions.map((optionKey) => {
@@ -2529,6 +2635,9 @@ export function getLiveModelFeatureFlags(modelId: string): GeminiLiveModelCapabi
  */
 type _ImageOptionContract = Pick<GenerateImageOptions, GeminiImageConfigOptionKey>;
 type _TextOptionContract = Pick<GenerateTextOptions, GeminiTextConfigOptionKey>;
+type _KeysOfUnion<T> = T extends T ? keyof T : never;
+type _AssertTrue<T extends true> = T;
+type _InteractionOptionContract = _AssertTrue<GeminiInteractionConfigOptionKey extends _KeysOfUnion<GeminiInteractionCreateParams> ? true : false>;
 type _EmbeddingOptionContract = Pick<GenerateEmbeddingOptions, GeminiEmbeddingConfigOptionKey>;
 type _AudioOptionContract = Pick<GenerateAudioOptions, GeminiAudioConfigOptionKey>;
 type _MusicOptionContract = Pick<GenerateMusicOptions, GeminiMusicConfigOptionKey>;
@@ -2537,6 +2646,7 @@ type _LiveOptionContract = Pick<LiveChatSessionOptions, GeminiLiveConfigOptionKe
 
 void (0 as unknown as _ImageOptionContract);
 void (0 as unknown as _TextOptionContract);
+void (0 as unknown as _InteractionOptionContract);
 void (0 as unknown as _EmbeddingOptionContract);
 void (0 as unknown as _AudioOptionContract);
 void (0 as unknown as _MusicOptionContract);

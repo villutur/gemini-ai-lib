@@ -31,6 +31,8 @@ PRs are welcome.
 - `GeminiMusicService`: non-realtime Lyria music generation helpers
 - `GeminiImageService`: image generation and SVG generation helpers
 - `GeminiVideoService`: Veo video generation and operation polling helpers
+- `GeminiInteractionsService`: raw Gemini Interactions API wrapper for models
+  and agents
 - `GeminiLiveChatSession`: real-time live-session wrapper, currently client-side only
 
 ## Helpers, Catalogs, and Metadata Exports
@@ -50,6 +52,14 @@ PRs are welcome.
   want to self-host or inspect the processor
 - `GEMINI_TEXT_MODELS`: shared text-model list for consumer model pickers
 - `GEMINI_TEXT_MODEL_DISPLAY_NAMES`: user-facing labels for known text models
+- `GEMINI_INTERACTION_MODELS`: shared Interactions model list for consumer
+  model pickers
+- `GEMINI_INTERACTION_MODEL_DISPLAY_NAMES`: user-facing labels for known
+  Interactions models
+- `GEMINI_INTERACTION_AGENTS`: shared Interactions agent list, including Deep
+  Research preview agents
+- `GEMINI_INTERACTION_AGENT_DISPLAY_NAMES`: user-facing labels for known
+  Interactions agents
 - `GEMINI_EMBEDDING_MODELS`: shared embedding-model list for consumer model
   pickers
 - `GEMINI_EMBEDDING_MODEL_DISPLAY_NAMES`: user-facing labels for known
@@ -78,6 +88,8 @@ PRs are welcome.
   config options for dynamic UIs
 - `GEMINI_TEXT_MODEL_CAPABILITIES`: model-aware text limits and supported
   config options for dynamic UIs
+- `GEMINI_INTERACTION_MODEL_CAPABILITIES`: model-aware Interactions support
+  hints and config options for dynamic UIs
 - `GEMINI_EMBEDDING_MODEL_CAPABILITIES`: model-aware embedding limits and
   supported config options for dynamic UIs
 - `GEMINI_AUDIO_MODEL_CAPABILITIES`: model-aware audio/TTS limits and
@@ -143,6 +155,24 @@ model IDs below.
 
 - `gemini-2.5-flash-native-audio-preview-12-2025`
 
+### Interactions
+
+Models:
+
+- `gemini-2.5-flash`
+- `gemini-2.5-pro`
+- `gemini-3-flash-preview`
+- `gemini-3.1-flash-lite-preview`
+- `gemini-3.1-pro-preview`
+- `gemini-3-pro-image-preview`
+- `gemini-3.1-flash-image-preview`
+
+Agents:
+
+- `deep-research-pro-preview-12-2025`
+- `deep-research-preview-04-2026`
+- `deep-research-max-preview-04-2026`
+
 ## Usage
 
 Server-side usage is the default and preferred integration path.
@@ -201,6 +231,10 @@ The root package also re-exports a curated image-focused subset of
 `GenerateImagesConfig`, `GenerateImagesResponse`, `GeneratedImage`,
 `GeneratedImageMask`, and `PersonGeneration`.
 
+The root package also re-exports the SDK `Interactions` type namespace plus
+library aliases such as `GeminiInteraction`, `GeminiInteractionCreateParams`,
+`GeminiInteractionSSEEvent`, and common Interactions content/tool types.
+
 Persistent text chat can layer on top of `GeminiChatService` while still
 letting the consuming project own validation and request shaping.
 
@@ -223,6 +257,56 @@ const chatService = new GeminiChatService({
 });
 
 const text = await chatService.sendMessageString("Now add the top two risks and a rollback trigger.");
+```
+
+`GeminiInteractionsService` is a thin wrapper around the Gemini Interactions
+API. It returns SDK responses unchanged and leaves session storage, tool
+execution loops, retention UI, and user-facing error mapping to the consuming
+app. The Interactions API is beta, so schemas may change.
+
+Interaction objects are stored by default by the Gemini API (`store=true`) so
+they can be retrieved, continued with `previous_interaction_id`, or run in the
+background. Set `store: false` when a consumer explicitly wants to opt out, but
+stateful continuation and background behavior depend on stored interactions.
+
+```ts
+import { GeminiInteractionsService, type GeminiInteractionCreateParams } from "@villutur/gemini-ai-lib";
+
+const interactions = new GeminiInteractionsService({
+  apiKey: process.env.GEMINI_API_KEY,
+});
+
+const first = await interactions.create({
+  model: "gemini-3-flash-preview",
+  input: "Give me a one-sentence project risk summary.",
+} satisfies GeminiInteractionCreateParams);
+
+const followUp = await interactions.create({
+  model: "gemini-3-flash-preview",
+  previous_interaction_id: first.id,
+  input: "Now suggest the safest next action.",
+});
+
+const retrieved = await interactions.get(followUp.id, { include_input: true });
+
+const stream = await interactions.create({
+  model: "gemini-3-flash-preview",
+  input: "Stream a concise status update.",
+  stream: true,
+});
+
+for await (const event of stream) {
+  console.log(event.event_type);
+}
+
+const research = await interactions.create({
+  agent: "deep-research-pro-preview-12-2025",
+  input: "Research current SVG editor automation approaches.",
+  background: true,
+});
+
+await interactions.cancel(research.id);
+console.log(retrieved.status);
 ```
 
 Projects can also inject their own structured logger adapter when they want
@@ -277,6 +361,27 @@ import { GEMINI_TEXT_MODELS, GEMINI_TEXT_MODEL_DISPLAY_NAMES } from "@villutur/g
 const options = GEMINI_TEXT_MODELS.map((model) => ({
   value: model,
   label: GEMINI_TEXT_MODEL_DISPLAY_NAMES[model],
+}));
+```
+
+Interactions model and agent pickers can use separate catalogs:
+
+```ts
+import {
+  GEMINI_INTERACTION_AGENTS,
+  GEMINI_INTERACTION_MODELS,
+  getInteractionAgentDisplayName,
+  getInteractionModelDisplayName,
+} from "@villutur/gemini-ai-lib";
+
+const interactionModelOptions = GEMINI_INTERACTION_MODELS.map((model) => ({
+  value: model,
+  label: getInteractionModelDisplayName(model),
+}));
+
+const interactionAgentOptions = GEMINI_INTERACTION_AGENTS.map((agent) => ({
+  value: agent,
+  label: getInteractionAgentDisplayName(agent),
 }));
 ```
 
@@ -650,6 +755,10 @@ import {
   GEMINI_VIDEO_MODELS,
   GEMINI_IMAGE_MODELS,
   GEMINI_LIVE_MODELS,
+  GEMINI_INTERACTION_MODELS,
+  GEMINI_INTERACTION_AGENTS,
+  getInteractionAgentDisplayName,
+  getInteractionModelDisplayName,
   getEmbeddingModelDisplayName,
   getAudioModelDisplayName,
   getAudioVoiceNames,
@@ -679,8 +788,12 @@ import {
   GEMINI_IMAGE_CONFIG_OPTIONS,
   GEMINI_LIVE_MODEL_CAPABILITIES,
   GEMINI_LIVE_CONFIG_OPTIONS,
+  GEMINI_INTERACTION_MODEL_CAPABILITIES,
+  GEMINI_INTERACTION_CONFIG_OPTIONS,
   GEMINI_TEXT_MODEL_CAPABILITIES,
   GEMINI_TEXT_CONFIG_OPTIONS,
+  getInteractionModelCapabilities,
+  getInteractionModelConfigOptions,
   getEmbeddingModelCapabilities,
   getEmbeddingModelConfigOptions,
   getEmbeddingModelInputLimits,
@@ -700,6 +813,7 @@ import {
   getImageModelAttachmentLimits,
   getTextModelAttachmentLimits,
   getTextModelCapabilities,
+  getTextModelConfigOptions,
 } from "@villutur/gemini-ai-lib/model-capabilities";
 ```
 

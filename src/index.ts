@@ -5,6 +5,7 @@ export * from "./helpers.js";
 export * from "./text.js";
 export * from "./embedding.js";
 export * from "./chat.js";
+export * from "./interactions.js";
 export * from "./audio.js";
 export * from "./music.js";
 export * from "./image.js";
@@ -12,16 +13,7 @@ export * from "./video.js";
 export * from "./live.js";
 export * from "./logger.js";
 export * from "./response-metadata.js";
-export {
-  ActivityHandling,
-  EndSensitivity,
-  GoogleGenAI,
-  Modality,
-  PersonGeneration,
-  StartSensitivity,
-  ThinkingLevel,
-  Type,
-} from "@google/genai";
+export { ActivityHandling, EndSensitivity, GoogleGenAI, Modality, PersonGeneration, StartSensitivity, ThinkingLevel, Type } from "@google/genai";
 export type {
   Chat,
   Content,
@@ -43,6 +35,7 @@ export type {
   Image,
   ImageConfig,
   ImageConfigImageOutputOptions,
+  Interactions,
   LiveConnectConfig,
   LiveServerMessage,
   MultiSpeakerVoiceConfig,
