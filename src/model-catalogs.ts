@@ -37,7 +37,7 @@ export type KnownInteractionAgent = (typeof GEMINI_INTERACTION_AGENTS)[number];
 /**
  * Shared list of audio/TTS Gemini models for consumer model pickers.
  */
-export const GEMINI_AUDIO_MODELS = ["gemini-2.5-flash-preview-tts", "gemini-2.5-pro-preview-tts"] as const;
+export const GEMINI_AUDIO_MODELS = ["gemini-3.1-flash-tts-preview", "gemini-2.5-flash-preview-tts", "gemini-2.5-pro-preview-tts"] as const;
 
 export type KnownAudioGenerationModel = (typeof GEMINI_AUDIO_MODELS)[number];
 
@@ -117,6 +117,7 @@ export const GEMINI_INTERACTION_AGENT_DISPLAY_NAMES: Record<KnownInteractionAgen
  * User-facing labels for known audio/TTS models.
  */
 export const GEMINI_AUDIO_MODEL_DISPLAY_NAMES: Record<KnownAudioGenerationModel, string> = {
+  "gemini-3.1-flash-tts-preview": "Gemini 3.1 Flash TTS Preview",
   "gemini-2.5-flash-preview-tts": "Gemini 2.5 Flash Preview TTS",
   "gemini-2.5-pro-preview-tts": "Gemini 2.5 Pro Preview TTS",
 };

@@ -8,7 +8,7 @@ import { geminiLog } from "./logger.js";
 export interface GenerateAudioOptions {
   /**
    * Specific Gemini TTS model to use for synthesis.
-   * Defaults to `gemini-2.5-flash-preview-tts`.
+   * Defaults to `gemini-3.1-flash-tts-preview`.
    */
   model?: string;
   /**
@@ -48,7 +48,7 @@ export class GeminiAudioService extends GeminiBaseService {
    * @returns A Promise resolving to a Node.js Buffer containing the generated audio data.
    */
   public async generateAudio(text: string, prompt?: string, options?: GenerateAudioOptions): Promise<Buffer> {
-    const model = options?.model || "gemini-2.5-flash-preview-tts";
+    const model = options?.model || "gemini-3.1-flash-tts-preview";
     const voiceName = options?.voiceName || "Kore";
     const combinedText = prompt ? `${prompt} ${text}` : text;
     const responseModalities = options?.responseModalities?.length ? [...options.responseModalities] : [Modality.AUDIO];

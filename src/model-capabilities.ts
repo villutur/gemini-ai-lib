@@ -1788,6 +1788,28 @@ const KNOWN_EMBEDDING_MODEL_CAPABILITIES: Record<KnownEmbeddingModel, GeminiEmbe
 };
 
 const KNOWN_AUDIO_MODEL_CAPABILITIES: Record<KnownAudioGenerationModel, GeminiAudioModelCapabilities> = {
+  "gemini-3.1-flash-tts-preview": {
+    model: "gemini-3.1-flash-tts-preview",
+    isKnownModel: true,
+    source: "catalog",
+    inputLimits: {
+      supportsTextInput: true,
+      supportsAttachments: false,
+      maxContextTokens: 8192,
+    },
+    speakerLimits: {
+      supportsSingleSpeaker: true,
+      supportsMultiSpeaker: true,
+      maxSpeakers: 2,
+      multiSpeakerExactCount: 2,
+    },
+    allowedResponseModalities: ["AUDIO"],
+    supportedVoiceNames: GEMINI_AUDIO_VOICES,
+    defaultVoiceName: "Kore",
+    voiceCatalogAvailable: true,
+    supportedOptions: AUDIO_OPTION_KEYS,
+    unsupportedOptions: [],
+  },
   "gemini-2.5-flash-preview-tts": {
     model: "gemini-2.5-flash-preview-tts",
     isKnownModel: true,

@@ -138,6 +138,7 @@ model IDs below.
 
 ### Audio
 
+- `gemini-3.1-flash-tts-preview`
 - `gemini-2.5-flash-preview-tts`
 - `gemini-2.5-pro-preview-tts`
 
@@ -416,7 +417,7 @@ const selectedVoice = GEMINI_AUDIO_VOICES[0] ?? "Kore";
 const audioService = new GeminiAudioService();
 
 const audioBuffer = await audioService.generateAudio("Hello from Gemini TTS.", undefined, {
-  model: "gemini-2.5-flash-preview-tts",
+  model: "gemini-3.1-flash-tts-preview",
   voiceName: selectedVoice,
 });
 ```
@@ -499,7 +500,7 @@ import {
   getAudioVoiceOptions,
 } from "@villutur/gemini-ai-lib";
 
-const audioModel = "gemini-2.5-flash-preview-tts";
+const audioModel = "gemini-3.1-flash-tts-preview";
 const audioCapabilities = getAudioModelCapabilities(audioModel);
 const audioOptionDescriptors = getAudioModelConfigOptions(audioModel);
 const audioVoices = getAudioVoiceOptions();
@@ -508,6 +509,11 @@ const supportsDialogue = audioCapabilities.speakerLimits.supportsMultiSpeaker;
 const maxSpeakers = audioCapabilities.speakerLimits.maxSpeakers ?? 1;
 const defaultVoice = audioCapabilities.defaultVoiceName;
 ```
+
+`GeminiAudioService.generateAudio(...)` defaults to
+`gemini-3.1-flash-tts-preview`. The model is documented as text input,
+audio output, 8,192 input tokens, 16,384 output tokens, multi-speaker TTS with
+up to two speakers, and Batch API capable.
 
 The current `@google/genai` SDK surface exposes `voiceName`,
 `languageCode`, `responseModalities`, and `multiSpeakerVoiceConfig` for TTS
