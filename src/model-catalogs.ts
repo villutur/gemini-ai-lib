@@ -16,13 +16,14 @@ export type KnownTextGenerationModel = (typeof GEMINI_TEXT_MODELS)[number];
  * Shared list of Gemini models commonly used with the Interactions API.
  */
 export const GEMINI_INTERACTION_MODELS = [
+  "gemini-2.5-flash-lite",
   "gemini-2.5-flash",
   "gemini-2.5-pro",
-  "gemini-3-flash-preview",
   "gemini-3.1-flash-lite-preview",
+  "gemini-3-flash-preview",
   "gemini-3.1-pro-preview",
-  "gemini-3-pro-image-preview",
-  "gemini-3.1-flash-image-preview",
+  "lyria-3-clip-preview",
+  "lyria-3-pro-preview",
 ] as const;
 
 export type KnownInteractionModel = (typeof GEMINI_INTERACTION_MODELS)[number];
@@ -95,13 +96,14 @@ export const GEMINI_TEXT_MODEL_DISPLAY_NAMES: Record<KnownTextGenerationModel, s
  * User-facing labels for known Interactions models.
  */
 export const GEMINI_INTERACTION_MODEL_DISPLAY_NAMES: Record<KnownInteractionModel, string> = {
+  "gemini-2.5-flash-lite": "Gemini 2.5 Flash Lite",
   "gemini-2.5-flash": "Gemini 2.5 Flash",
   "gemini-2.5-pro": "Gemini 2.5 Pro",
-  "gemini-3-flash-preview": "Gemini 3 Flash Preview",
   "gemini-3.1-flash-lite-preview": "Gemini 3.1 Flash Lite Preview",
+  "gemini-3-flash-preview": "Gemini 3 Flash Preview",
   "gemini-3.1-pro-preview": "Gemini 3.1 Pro Preview",
-  "gemini-3-pro-image-preview": "Gemini 3 Pro Image Preview",
-  "gemini-3.1-flash-image-preview": "Gemini 3.1 Flash Image Preview",
+  "lyria-3-clip-preview": "Lyria 3 Clip Preview",
+  "lyria-3-pro-preview": "Lyria 3 Pro Preview"
 };
 
 /**
