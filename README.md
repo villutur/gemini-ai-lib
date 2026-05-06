@@ -291,7 +291,7 @@ const followUp = await interactions.create({
 
 const retrieved = await interactions.get(followUp.id, { include_input: true });
 
-const stream = await interactions.create({
+const stream = await interactions.createStream({
   model: "gemini-3-flash-preview",
   input: "Stream a concise status update.",
   stream: true,

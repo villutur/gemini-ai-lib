@@ -26,6 +26,9 @@ export type { KnownInteractionAgent, KnownInteractionModel };
 
 export type GeminiInteraction = Interactions.Interaction;
 export type GeminiInteractionCreateParams = Interactions.InteractionCreateParams;
+export type GeminiInteractionCreateParamsStreaming =
+  | Interactions.CreateModelInteractionParamsStreaming
+  | Interactions.CreateAgentInteractionParamsStreaming;
 export type GeminiInteractionGetParams = Interactions.InteractionGetParams;
 export type GeminiInteractionGetParamsNonStreaming = Interactions.InteractionGetParamsNonStreaming;
 export type GeminiInteractionGetParamsStreaming = Interactions.InteractionGetParamsStreaming;
@@ -60,6 +63,7 @@ export type GeminiInteractionTurn = Interactions.Turn;
 
 export type GeminiInteractionRequestOptions = Parameters<Interactions["create"]>[1];
 export type GeminiInteractionCreateResult = Awaited<ReturnType<Interactions["create"]>>;
+export type GeminiInteractionCreateStreamResult = AsyncIterable<GeminiInteractionSSEEvent>;
 export type GeminiInteractionGetResult = Awaited<ReturnType<Interactions["get"]>>;
 export type GeminiInteractionDeleteResult = Awaited<ReturnType<Interactions["delete"]>>;
 export type GeminiInteractionCancelResult = Awaited<ReturnType<Interactions["cancel"]>>;
@@ -176,6 +180,58 @@ export class GeminiInteractionsService extends GeminiBaseService {
         level: "error",
         source: "gemini.interactions",
         message: "Gemini interaction create failed.",
+        status: "error",
+        metadata: {
+          ...metadata,
+          error: summarizeError(error),
+        },
+      });
+
+      throw error;
+    }
+  }
+
+  /**
+   * Creates a streamed model or agent interaction.
+   *
+   * The Interactions API returns final content as `content.*` stream events;
+   * the final `interaction.complete` event intentionally has empty outputs.
+   */
+  public async createStream(
+    params: GeminiInteractionCreateParamsStreaming,
+    options?: GeminiInteractionRequestOptions,
+  ): Promise<GeminiInteractionCreateStreamResult> {
+    const streamParams = {
+      ...params,
+      stream: true as const,
+    };
+    const metadata = summarizeCreateParams(streamParams);
+
+    await this.log({
+      level: "info",
+      source: "gemini.interactions",
+      message: "Gemini interaction stream create started.",
+      status: "running",
+      metadata,
+    });
+
+    try {
+      const result = await this.getInteractionsClient().create(streamParams, options);
+
+      await this.log({
+        level: "info",
+        source: "gemini.interactions",
+        message: "Gemini interaction stream create opened.",
+        status: "success",
+        metadata,
+      });
+
+      return result as GeminiInteractionCreateStreamResult;
+    } catch (error) {
+      await this.log({
+        level: "error",
+        source: "gemini.interactions",
+        message: "Gemini interaction stream create failed.",
         status: "error",
         metadata: {
           ...metadata,

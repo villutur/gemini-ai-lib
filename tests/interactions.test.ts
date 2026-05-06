@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import type { GeminiInteraction, GeminiInteractionCreateParams, LoggerAdapter, StructuredLogEvent } from "../dist/index.js";
+import type {
+  GeminiInteraction,
+  GeminiInteractionCreateParams,
+  GeminiInteractionCreateParamsStreaming,
+  LoggerAdapter,
+  StructuredLogEvent,
+} from "../dist/index.js";
 import { GeminiInteractionsService, getInteractionAgentDisplayName, getInteractionModelConfigOptions, getInteractionModelDisplayName } from "../dist/index.js";
 
 class TestLogger implements LoggerAdapter {
@@ -101,6 +107,43 @@ test("GeminiInteractionsService.create preserves streaming results", async () =>
 
   assert.equal(result, stream);
   assert.equal(capturedParams, params);
+});
+
+test("GeminiInteractionsService.createStream forces stream true and returns the typed event stream", async () => {
+  const logger = new TestLogger();
+  const service = createService(logger);
+  const stream = createAsyncStream([
+    { event_type: "interaction.start", interaction: createInteraction({ id: "interaction-stream" }) },
+    { event_type: "content.delta", index: 0, delta: { type: "text", text: "hi" } },
+    { event_type: "interaction.complete", interaction: createInteraction({ id: "interaction-stream", outputs: [] }) },
+  ]);
+  let capturedParams: unknown;
+  let capturedOptions: unknown;
+
+  (service as unknown as { ai: { interactions: { create: (params: unknown, options?: unknown) => Promise<unknown> } } }).ai = {
+    interactions: {
+      create: async (params: unknown, options?: unknown) => {
+        capturedParams = params;
+        capturedOptions = options;
+        return stream;
+      },
+    },
+  };
+
+  const params: GeminiInteractionCreateParamsStreaming = {
+    model: "gemini-3-flash-preview",
+    input: "Stream this.",
+    stream: true,
+  };
+  const options = { timeout: 4321 };
+  const result = await service.createStream(params, options);
+
+  assert.equal(result, stream);
+  assert.deepEqual(capturedParams, params);
+  assert.equal(capturedOptions, options);
+  assert.equal(logger.events[0]?.message, "Gemini interaction stream create started.");
+  assert.equal(logger.events[0]?.metadata?.stream, true);
+  assert.equal(logger.events[1]?.message, "Gemini interaction stream create opened.");
 });
 
 test("GeminiInteractionsService.get forwards id and params", async () => {
