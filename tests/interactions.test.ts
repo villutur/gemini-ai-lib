@@ -31,6 +31,7 @@ function createInteraction(overrides: Partial<GeminiInteraction> = {}): GeminiIn
     updated: "2026-01-01T00:00:01Z",
     status: "completed",
     model: "gemini-3-flash-preview",
+    usage: { input_tokens: 8, output_tokens: 4, total_tokens: 12 },
     outputs: [{ type: "text", text: "done" }],
     ...overrides,
   } as GeminiInteraction;
@@ -82,6 +83,8 @@ test("GeminiInteractionsService.create forwards params unchanged and returns the
   assert.equal(logger.events[1]?.message, "Gemini interaction create completed.");
   assert.equal(logger.events[1]?.metadata?.interactionId, "interaction-1");
   assert.equal(logger.events[1]?.metadata?.status, "completed");
+  assert.equal(typeof logger.events[1]?.metadata?.durationMs, "number");
+  assert.deepEqual(logger.events[1]?.metadata?.usage, { input_tokens: 8, output_tokens: 4, total_tokens: 12 });
 });
 
 test("GeminiInteractionsService.create preserves streaming results", async () => {
@@ -138,12 +141,19 @@ test("GeminiInteractionsService.createStream forces stream true and returns the 
   const options = { timeout: 4321 };
   const result = await service.createStream(params, options);
 
-  assert.equal(result, stream);
+  const yielded = [];
+  for await (const event of result) {
+    yielded.push(event);
+  }
+  assert.equal(yielded.length, 3);
   assert.deepEqual(capturedParams, params);
   assert.equal(capturedOptions, options);
   assert.equal(logger.events[0]?.message, "Gemini interaction stream create started.");
   assert.equal(logger.events[0]?.metadata?.stream, true);
   assert.equal(logger.events[1]?.message, "Gemini interaction stream create opened.");
+  assert.equal(logger.events[2]?.message, "Gemini interaction stream create completed.");
+  assert.equal(logger.events[2]?.metadata?.interactionId, "interaction-stream");
+  assert.equal(typeof logger.events[2]?.metadata?.durationMs, "number");
 });
 
 test("GeminiInteractionsService.get forwards id and params", async () => {

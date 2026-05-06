@@ -79,6 +79,10 @@ function toDefinedRecord(entries: Record<string, unknown>) {
   return Object.fromEntries(Object.entries(entries).filter(([, value]) => value !== undefined));
 }
 
+function durationSince(startedAt: number) {
+  return Math.max(0, Math.round(performance.now() - startedAt));
+}
+
 function summarizeCreateParams(params: GeminiInteractionCreateParams) {
   const record = params as unknown as Record<string, unknown>;
   const tools = Array.isArray(record.tools) ? record.tools : undefined;
@@ -105,6 +109,39 @@ function summarizeGetParams(params: GeminiInteractionGetParams | undefined) {
   });
 }
 
+function summarizeUsage(value: unknown) {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+  return toDefinedRecord({
+    input_tokens: typeof value.input_tokens === "number" ? value.input_tokens : undefined,
+    output_tokens: typeof value.output_tokens === "number" ? value.output_tokens : undefined,
+    total_tokens: typeof value.total_tokens === "number" ? value.total_tokens : undefined,
+    thoughts_tokens: typeof value.thoughts_tokens === "number" ? value.thoughts_tokens : undefined,
+    cached_content_tokens: typeof value.cached_content_tokens === "number" ? value.cached_content_tokens : undefined,
+    tool_use_prompt_tokens: typeof value.tool_use_prompt_tokens === "number" ? value.tool_use_prompt_tokens : undefined,
+    promptTokenCount: typeof value.promptTokenCount === "number" ? value.promptTokenCount : undefined,
+    candidatesTokenCount: typeof value.candidatesTokenCount === "number" ? value.candidatesTokenCount : undefined,
+    totalTokenCount: typeof value.totalTokenCount === "number" ? value.totalTokenCount : undefined,
+    thoughtsTokenCount: typeof value.thoughtsTokenCount === "number" ? value.thoughtsTokenCount : undefined,
+    cachedContentTokenCount: typeof value.cachedContentTokenCount === "number" ? value.cachedContentTokenCount : undefined,
+    toolUsePromptTokenCount: typeof value.toolUsePromptTokenCount === "number" ? value.toolUsePromptTokenCount : undefined,
+  });
+}
+
+function summarizeToolCallsFromOutputs(outputs: unknown) {
+  if (!Array.isArray(outputs)) {
+    return { toolCallCount: 0, toolCallNames: [] };
+  }
+  const toolCallNames = outputs
+    .filter((output): output is Record<string, unknown> => isRecord(output) && output.type === "function_call" && typeof output.name === "string")
+    .map((output) => output.name as string);
+  return {
+    toolCallCount: toolCallNames.length,
+    toolCallNames,
+  };
+}
+
 function summarizeInteractionResult(result: unknown) {
   if (!isRecord(result)) {
     return {};
@@ -115,6 +152,8 @@ function summarizeInteractionResult(result: unknown) {
     status: typeof result.status === "string" ? result.status : undefined,
     model: typeof result.model === "string" ? result.model : undefined,
     agent: typeof result.agent === "string" ? result.agent : undefined,
+    usage: summarizeUsage(result.usage),
+    ...summarizeToolCallsFromOutputs(result.outputs),
   });
 }
 
@@ -151,6 +190,7 @@ export class GeminiInteractionsService extends GeminiBaseService {
    */
   public async create(params: GeminiInteractionCreateParams, options?: GeminiInteractionRequestOptions): Promise<GeminiInteractionCreateResult> {
     const metadata = summarizeCreateParams(params);
+    const startedAt = performance.now();
 
     await this.log({
       level: "info",
@@ -171,6 +211,7 @@ export class GeminiInteractionsService extends GeminiBaseService {
         metadata: {
           ...metadata,
           ...summarizeInteractionResult(result),
+          durationMs: durationSince(startedAt),
         },
       });
 
@@ -183,6 +224,7 @@ export class GeminiInteractionsService extends GeminiBaseService {
         status: "error",
         metadata: {
           ...metadata,
+          durationMs: durationSince(startedAt),
           error: summarizeError(error),
         },
       });
@@ -206,6 +248,7 @@ export class GeminiInteractionsService extends GeminiBaseService {
       stream: true as const,
     };
     const metadata = summarizeCreateParams(streamParams);
+    const startedAt = performance.now();
 
     await this.log({
       level: "info",
@@ -226,7 +269,7 @@ export class GeminiInteractionsService extends GeminiBaseService {
         metadata,
       });
 
-      return result as GeminiInteractionCreateStreamResult;
+      return this.wrapLoggedStream(result as GeminiInteractionCreateStreamResult, metadata, startedAt);
     } catch (error) {
       await this.log({
         level: "error",
@@ -235,12 +278,59 @@ export class GeminiInteractionsService extends GeminiBaseService {
         status: "error",
         metadata: {
           ...metadata,
+          durationMs: durationSince(startedAt),
           error: summarizeError(error),
         },
       });
 
       throw error;
     }
+  }
+
+  private wrapLoggedStream(
+    stream: GeminiInteractionCreateStreamResult,
+    metadata: Record<string, unknown>,
+    startedAt: number,
+  ): GeminiInteractionCreateStreamResult {
+    const service = this;
+    return {
+      async *[Symbol.asyncIterator]() {
+        let finalInteraction: unknown;
+        try {
+          for await (const event of stream) {
+            if (isRecord(event) && event.event_type === "interaction.complete") {
+              finalInteraction = event.interaction;
+            }
+            yield event;
+          }
+          await service.log({
+            level: "info",
+            source: "gemini.interactions",
+            message: "Gemini interaction stream create completed.",
+            status: "success",
+            metadata: {
+              ...metadata,
+              ...summarizeInteractionResult(finalInteraction),
+              durationMs: durationSince(startedAt),
+            },
+          });
+        } catch (error) {
+          await service.log({
+            level: "error",
+            source: "gemini.interactions",
+            message: "Gemini interaction stream create failed.",
+            status: "error",
+            metadata: {
+              ...metadata,
+              ...summarizeInteractionResult(finalInteraction),
+              durationMs: durationSince(startedAt),
+              error: summarizeError(error),
+            },
+          });
+          throw error;
+        }
+      },
+    };
   }
 
   /**
