@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import type { GenerateContentResponse, LoggerAdapter, StructuredLogEvent } from "../src/index.ts";
-import { GeminiImageService } from "../src/index.ts";
+import type { GenerateContentResponse, LoggerAdapter, StructuredLogEvent } from "../dist/index.js";
+import { GeminiImageService } from "../dist/index.js";
 
 class TestLogger implements LoggerAdapter {
   public events: StructuredLogEvent[] = [];

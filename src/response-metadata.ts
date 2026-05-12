@@ -78,7 +78,8 @@ const GEMINI_MODEL_THINKING_SUPPORT: Readonly<Record<string, GeminiThinkingModel
   "gemini-3-flash-preview": GEMINI_3_FLASH_THINKING_SUPPORT,
   // The thinking guide recommends `thinkingLevel` for Gemini 3 models and onward.
   // Gemini 3.1 Flash-Lite also has an official model-page example using `thinking_level="high"`.
-  "gemini-3.1-flash-lite-preview": GEMINI_3_FLASH_THINKING_SUPPORT,
+  "gemini-3.1-flash-lite": GEMINI_3_FLASH_THINKING_SUPPORT,
+  "gemini-3.1-flash-live-preview": GEMINI_3_FLASH_THINKING_SUPPORT,
   "gemini-3.1-pro-preview": GEMINI_3_PRO_THINKING_SUPPORT,
   "gemini-2.5-flash": GEMINI_2_5_FLASH_THINKING_SUPPORT,
   "gemini-2.5-pro": GEMINI_2_5_PRO_THINKING_SUPPORT,

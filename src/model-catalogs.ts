@@ -8,7 +8,7 @@ export type KnownImageGenerationModel = (typeof GEMINI_IMAGE_MODELS)[number];
 /**
  * Shared list of text-oriented Gemini models for consumer model pickers.
  */
-export const GEMINI_TEXT_MODELS = ["gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-2.5-pro", "gemini-3-flash-preview", "gemini-3.1-flash-lite-preview", "gemini-3.1-pro-preview"] as const;
+export const GEMINI_TEXT_MODELS = ["gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-2.5-pro", "gemini-3-flash-preview", "gemini-3.1-flash-lite", "gemini-3.1-pro-preview"] as const;
 
 export type KnownTextGenerationModel = (typeof GEMINI_TEXT_MODELS)[number];
 
@@ -19,7 +19,7 @@ export const GEMINI_INTERACTION_MODELS = [
   "gemini-2.5-flash-lite",
   "gemini-2.5-flash",
   "gemini-2.5-pro",
-  "gemini-3.1-flash-lite-preview",
+  "gemini-3.1-flash-lite",
   "gemini-3-flash-preview",
   "gemini-3.1-pro-preview",
   "lyria-3-clip-preview",
@@ -52,7 +52,7 @@ export type KnownMusicGenerationModel = (typeof GEMINI_MUSIC_MODELS)[number];
 /**
  * Shared list of embedding Gemini models for consumer model pickers.
  */
-export const GEMINI_EMBEDDING_MODELS = ["gemini-embedding-001", "gemini-embedding-2-preview"] as const;
+export const GEMINI_EMBEDDING_MODELS = ["gemini-embedding-001", "gemini-embedding-2"] as const;
 
 export type KnownEmbeddingModel = (typeof GEMINI_EMBEDDING_MODELS)[number];
 
@@ -66,7 +66,7 @@ export type KnownVideoGenerationModel = (typeof GEMINI_VIDEO_MODELS)[number];
 /**
  * Shared list of live-session Gemini models for real-time voice/video flows.
  */
-export const GEMINI_LIVE_MODELS = ["gemini-2.5-flash-native-audio-preview-12-2025"] as const;
+export const GEMINI_LIVE_MODELS = ["gemini-3.1-flash-live-preview", "gemini-2.5-flash-native-audio-preview-12-2025"] as const;
 
 export type KnownLiveGenerationModel = (typeof GEMINI_LIVE_MODELS)[number];
 
@@ -88,7 +88,7 @@ export const GEMINI_TEXT_MODEL_DISPLAY_NAMES: Record<KnownTextGenerationModel, s
   "gemini-2.5-flash": "Gemini 2.5 Flash",
   "gemini-2.5-pro": "Gemini 2.5 Pro",
   "gemini-3-flash-preview": "Gemini 3 Flash Preview",
-  "gemini-3.1-flash-lite-preview": "Gemini 3.1 Flash Lite Preview",
+  "gemini-3.1-flash-lite": "Gemini 3.1 Flash Lite",
   "gemini-3.1-pro-preview": "Gemini 3.1 Pro Preview",
 };
 
@@ -99,7 +99,7 @@ export const GEMINI_INTERACTION_MODEL_DISPLAY_NAMES: Record<KnownInteractionMode
   "gemini-2.5-flash-lite": "Gemini 2.5 Flash Lite",
   "gemini-2.5-flash": "Gemini 2.5 Flash",
   "gemini-2.5-pro": "Gemini 2.5 Pro",
-  "gemini-3.1-flash-lite-preview": "Gemini 3.1 Flash Lite Preview",
+  "gemini-3.1-flash-lite": "Gemini 3.1 Flash Lite",
   "gemini-3-flash-preview": "Gemini 3 Flash Preview",
   "gemini-3.1-pro-preview": "Gemini 3.1 Pro Preview",
   "lyria-3-clip-preview": "Lyria 3 Clip Preview",
@@ -137,7 +137,7 @@ export const GEMINI_MUSIC_MODEL_DISPLAY_NAMES: Record<KnownMusicGenerationModel,
  */
 export const GEMINI_EMBEDDING_MODEL_DISPLAY_NAMES: Record<KnownEmbeddingModel, string> = {
   "gemini-embedding-001": "Gemini Embedding 001",
-  "gemini-embedding-2-preview": "Gemini Embedding 2 Preview",
+  "gemini-embedding-2": "Gemini Embedding 2",
 };
 
 /**
@@ -152,6 +152,7 @@ export const GEMINI_VIDEO_MODEL_DISPLAY_NAMES: Record<KnownVideoGenerationModel,
  * User-facing labels for known live models.
  */
 export const GEMINI_LIVE_MODEL_DISPLAY_NAMES: Record<KnownLiveGenerationModel, string> = {
+  "gemini-3.1-flash-live-preview": "Gemini 3.1 Flash Live Preview",
   "gemini-2.5-flash-native-audio-preview-12-2025": "Gemini 2.5 Flash Native Audio (12-2025)",
 };
 

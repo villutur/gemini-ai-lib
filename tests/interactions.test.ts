@@ -7,7 +7,14 @@ import type {
   LoggerAdapter,
   StructuredLogEvent,
 } from "../dist/index.js";
-import { GeminiInteractionsService, getInteractionAgentDisplayName, getInteractionModelConfigOptions, getInteractionModelDisplayName } from "../dist/index.js";
+import {
+  GEMINI_INTERACTION_MODELS,
+  GeminiInteractionsService,
+  getInteractionAgentDisplayName,
+  getInteractionModelConfigOptions,
+  getInteractionModelDisplayName,
+  summarizeToolCallsFromSteps,
+} from "../dist/index.js";
 
 class TestLogger implements LoggerAdapter {
   public events: StructuredLogEvent[] = [];
@@ -31,8 +38,8 @@ function createInteraction(overrides: Partial<GeminiInteraction> = {}): GeminiIn
     updated: "2026-01-01T00:00:01Z",
     status: "completed",
     model: "gemini-3-flash-preview",
-    usage: { input_tokens: 8, output_tokens: 4, total_tokens: 12 },
-    outputs: [{ type: "text", text: "done" }],
+    usage: { total_input_tokens: 8, total_output_tokens: 4, total_tokens: 12 },
+    steps: [{ type: "model_output", content: [{ type: "text", text: "done" }] }],
     ...overrides,
   } as GeminiInteraction;
 }
@@ -84,12 +91,12 @@ test("GeminiInteractionsService.create forwards params unchanged and returns the
   assert.equal(logger.events[1]?.metadata?.interactionId, "interaction-1");
   assert.equal(logger.events[1]?.metadata?.status, "completed");
   assert.equal(typeof logger.events[1]?.metadata?.durationMs, "number");
-  assert.deepEqual(logger.events[1]?.metadata?.usage, { input_tokens: 8, output_tokens: 4, total_tokens: 12 });
+  assert.deepEqual(logger.events[1]?.metadata?.usage, { total_input_tokens: 8, total_output_tokens: 4, total_tokens: 12 });
 });
 
 test("GeminiInteractionsService.create preserves streaming results", async () => {
   const service = createService(new TestLogger());
-  const stream = createAsyncStream([{ event_type: "interaction.complete" }]);
+  const stream = createAsyncStream([{ event_type: "interaction.completed" }]);
   let capturedParams: unknown;
 
   (service as unknown as { ai: { interactions: { create: (params: unknown) => Promise<unknown> } } }).ai = {
@@ -116,9 +123,11 @@ test("GeminiInteractionsService.createStream forces stream true and returns the 
   const logger = new TestLogger();
   const service = createService(logger);
   const stream = createAsyncStream([
-    { event_type: "interaction.start", interaction: createInteraction({ id: "interaction-stream" }) },
-    { event_type: "content.delta", index: 0, delta: { type: "text", text: "hi" } },
-    { event_type: "interaction.complete", interaction: createInteraction({ id: "interaction-stream", outputs: [] }) },
+    { event_type: "interaction.created", interaction: createInteraction({ id: "interaction-stream" }) },
+    { event_type: "step.start", index: 0, step: { type: "model_output", content: [] } },
+    { event_type: "step.delta", index: 0, delta: { type: "text", text: "hi" } },
+    { event_type: "step.stop", index: 0 },
+    { event_type: "interaction.completed", interaction: createInteraction({ id: "interaction-stream", steps: [] }) },
   ]);
   let capturedParams: unknown;
   let capturedOptions: unknown;
@@ -145,7 +154,7 @@ test("GeminiInteractionsService.createStream forces stream true and returns the 
   for await (const event of result) {
     yielded.push(event);
   }
-  assert.equal(yielded.length, 3);
+  assert.equal(yielded.length, 5);
   assert.deepEqual(capturedParams, params);
   assert.equal(capturedOptions, options);
   assert.equal(logger.events[0]?.message, "Gemini interaction stream create started.");
@@ -182,7 +191,7 @@ test("GeminiInteractionsService.get forwards id and params", async () => {
 
 test("GeminiInteractionsService.get preserves streaming results", async () => {
   const service = createService(new TestLogger());
-  const stream = createAsyncStream([{ event_type: "content.delta", delta: { type: "text", text: "hi" } }]);
+  const stream = createAsyncStream([{ event_type: "step.delta", index: 0, delta: { type: "text", text: "hi" } }]);
   let capturedParams: unknown;
 
   (service as unknown as { ai: { interactions: { get: (id: string, params?: unknown) => Promise<unknown> } } }).ai = {
@@ -266,10 +275,27 @@ test("GeminiInteractionsService logs and rethrows SDK errors", async () => {
 });
 
 test("Interactions catalogs expose display labels and fallback to raw ids", () => {
+  assert.equal(GEMINI_INTERACTION_MODELS.includes("gemini-3.1-flash-lite"), true);
+  assert.equal(GEMINI_INTERACTION_MODELS.includes("gemini-3.1-flash-lite-preview" as never), false);
   assert.equal(getInteractionModelDisplayName("gemini-3-flash-preview"), "Gemini 3 Flash Preview");
+  assert.equal(getInteractionModelDisplayName("gemini-3.1-flash-lite"), "Gemini 3.1 Flash Lite");
   assert.equal(getInteractionModelDisplayName("future-model"), "future-model");
   assert.equal(getInteractionAgentDisplayName("deep-research-pro-preview-12-2025"), "Deep Research Pro Preview (12-2025)");
   assert.equal(getInteractionAgentDisplayName("future-agent"), "future-agent");
+});
+
+test("summarizeToolCallsFromSteps counts function-call steps", () => {
+  assert.deepEqual(
+    summarizeToolCallsFromSteps([
+      { type: "user_input", content: [{ type: "text", text: "hello" }] },
+      { type: "function_call", id: "call-1", name: "lookup_asset", arguments: { id: "asset-1" } },
+      { type: "function_call", id: "call-2", name: "write_report", arguments: {} },
+    ]),
+    {
+      toolCallCount: 2,
+      toolCallNames: ["lookup_asset", "write_report"],
+    },
+  );
 });
 
 test("getInteractionModelConfigOptions returns descriptors for known and unknown models", () => {

@@ -1,8 +1,8 @@
-The **Gemini Embedding** series, as of 2026, has shifted from text-only models to natively multimodal engines. The **gemini-embedding-2-preview** is a generational leap, allowing you to project text, images, video, and audio into a single, unified vector space.
+The **Gemini Embedding** series, as of 2026, has shifted from text-only models to natively multimodal engines. The **gemini-embedding-2** is a generational leap, allowing you to project text, images, video, and audio into a single, unified vector space.
 
 ### 1. Model Capabilities & Output Table
 
-| Feature | gemini-embedding-001 | gemini-embedding-2-preview |
+| Feature | gemini-embedding-001 | gemini-embedding-2 |
 | :--- | :--- | :--- |
 | **Key Strength** | Stable, high-efficiency text search. | Natively multimodal (all-in-one RAG). |
 | **Input Modalities** | Text only | Text, Image, Video, Audio, PDF |
@@ -63,8 +63,8 @@ export const EMBEDDING_MODELS: Record<string, EmbeddingModelMetadata> = {
       recommendedDims: [768, 1536, 3072]
     }
   },
-  "gemini-embedding-2-preview": {
-    id: "gemini-embedding-2-preview",
+  "gemini-embedding-2": {
+    id: "gemini-embedding-2",
     name: "Gemini Embedding 2 (Multimodal)",
     maxTokens: 8192,
     description: "Natively embeds text, images, video, and audio.",
@@ -112,7 +112,7 @@ export const formatEmbeddingPayload = (modelId: string, input: any, config: any)
 
 ### 5. Advanced Implementation Notes
 
-* **The "Incompatibility" Trap:** Vectors from `gemini-embedding-001` and `gemini-embedding-2-preview` live in different mathematical spaces. You **cannot** compare a v1 query vector against a v2 document index. Upgrading requires a full re-index of your database.
+* **The "Incompatibility" Trap:** Vectors from `gemini-embedding-001` and `gemini-embedding-2` live in different mathematical spaces. You **cannot** compare a v1 query vector against a v2 document index. Upgrading requires a full re-index of your database.
 * **Matryoshka Learning (MRL):** In 2026, Google explicitly recommends **768 dimensions** for V2. It retains ~98% of the accuracy of 3,072 dimensions while cutting your storage costs and search latency by 75%.
 * **Video Embedding Strategy:** When embedding video, the model captures semantic motion. A query for "person falling" will match a video of a fall better than a static image of someone on the ground.
 * **Task Type Pairing:** Always pair your tasks. If your database is embedded as `RETRIEVAL_DOCUMENT`, your search bar **must** use `RETRIEVAL_QUERY` to get the best distance match.

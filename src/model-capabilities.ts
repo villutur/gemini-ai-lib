@@ -174,6 +174,7 @@ export type GeminiLiveConfigOptionKey =
   | "enableGoogleSearch"
   | "enableAffectiveDialog"
   | "enableProactiveAudio"
+  | "thinkingLevel"
   | "thinkingBudget"
   | "includeThoughts"
   | "vadConfig"
@@ -777,6 +778,10 @@ export interface GeminiVideoModelCapabilities {
  * Live-session limits exposed for consumer controls.
  */
 export interface GeminiLiveModelLimits {
+  /**
+   * Supported high-level thinking controls for models that use thinking levels.
+   */
+  supportedThinkingLevels: readonly GeminiThinkingProfileLevel[];
   /**
    * Maximum thinking budget supported by this live model where known.
    * Null means unknown.
@@ -1462,6 +1467,17 @@ export const GEMINI_LIVE_CONFIG_OPTIONS: Record<GeminiLiveConfigOptionKey, Gemin
     step: 1,
   },
   /**
+   * Thinking level for Gemini 3.1 live models.
+   */
+  thinkingLevel: {
+    key: "thinkingLevel",
+    label: "Thinking level",
+    description: "Controls reasoning intensity for live models that use Gemini 3 thinking levels.",
+    kind: "string",
+    defaultValue: "minimal",
+    allowedValues: ["minimal", "low", "medium", "high"],
+  },
+  /**
    * Include model thought traces when supported.
    */
   includeThoughts: {
@@ -1684,13 +1700,13 @@ const KNOWN_TEXT_MODEL_CAPABILITIES: Record<KnownTextGenerationModel, GeminiText
     supportedOptions: TEXT_OPTION_KEYS,
     unsupportedOptions: [],
   },
-  "gemini-3.1-flash-lite-preview": {
-    model: "gemini-3.1-flash-lite-preview",
+  "gemini-3.1-flash-lite": {
+    model: "gemini-3.1-flash-lite",
     isKnownModel: true,
     source: "catalog",
     attachmentLimits: COMMON_TEXT_ATTACHMENT_LIMITS,
     thinking: {
-      support: getGeminiThinkingSupportForModel("gemini-3.1-flash-lite-preview") ?? null,
+      support: getGeminiThinkingSupportForModel("gemini-3.1-flash-lite") ?? null,
       mode: "level",
       supportedLevels: ["minimal", "low", "medium", "high"],
     },
@@ -1753,11 +1769,11 @@ const KNOWN_EMBEDDING_MODEL_CAPABILITIES: Record<KnownEmbeddingModel, GeminiEmbe
     unsupportedOptions: [],
     notes: [
       "Use RETRIEVAL_QUERY for search queries and RETRIEVAL_DOCUMENT for indexed documents.",
-      "Embeddings from gemini-embedding-001 are not compatible with gemini-embedding-2-preview and require reindexing when switching model families.",
+      "Embeddings from gemini-embedding-001 are not compatible with gemini-embedding-2 and require reindexing when switching model families.",
     ],
   },
-  "gemini-embedding-2-preview": {
-    model: "gemini-embedding-2-preview",
+  "gemini-embedding-2": {
+    model: "gemini-embedding-2",
     isKnownModel: true,
     source: "catalog",
     inputLimits: {
@@ -1782,7 +1798,7 @@ const KNOWN_EMBEDDING_MODEL_CAPABILITIES: Record<KnownEmbeddingModel, GeminiEmbe
     notes: [
       "A single content entry with multiple parts produces one aggregated embedding across modalities.",
       "Multiple entries in the contents array produce multiple embeddings in the same response.",
-      "Embeddings from gemini-embedding-2-preview are not compatible with gemini-embedding-001 and require reindexing when switching model families.",
+      "Embeddings from gemini-embedding-2 are not compatible with gemini-embedding-001 and require reindexing when switching model families.",
     ],
   },
 };
@@ -1954,9 +1970,41 @@ const KNOWN_VIDEO_MODEL_CAPABILITIES: Record<KnownVideoGenerationModel, GeminiVi
   },
 };
 
-const LIVE_MODEL_THINKING_SUPPORT = getGeminiThinkingSupportForModel("gemini-2.5-flash-native-audio-preview-12-2025") ?? null;
+const LIVE_31_MODEL_THINKING_SUPPORT = getGeminiThinkingSupportForModel("gemini-3.1-flash-live-preview") ?? null;
+const LIVE_25_MODEL_THINKING_SUPPORT = getGeminiThinkingSupportForModel("gemini-2.5-flash-native-audio-preview-12-2025") ?? null;
 
 const KNOWN_LIVE_MODEL_CAPABILITIES: Record<KnownLiveGenerationModel, GeminiLiveModelCapabilities> = {
+  "gemini-3.1-flash-live-preview": {
+    model: "gemini-3.1-flash-live-preview",
+    isKnownModel: true,
+    source: "catalog",
+    featureFlags: {
+      supportsAudioInput: true,
+      supportsAudioOutput: true,
+      supportsToolCalling: true,
+      supportsGoogleSearch: true,
+      supportsAffectiveDialog: false,
+      supportsProactiveAudio: false,
+      supportsVadConfig: true,
+    },
+    limits: {
+      supportedThinkingLevels:
+        LIVE_31_MODEL_THINKING_SUPPORT?.parameter === "thinkingLevel" ? LIVE_31_MODEL_THINKING_SUPPORT.supportedLevels : [],
+      minThinkingBudget: null,
+      maxThinkingBudget: null,
+    },
+    supportedOptions: [
+      "systemInstruction",
+      "voiceName",
+      "tools",
+      "enableGoogleSearch",
+      "thinkingLevel",
+      "includeThoughts",
+      "vadConfig",
+      "audioWorkletModulePath",
+    ],
+    unsupportedOptions: [],
+  },
   "gemini-2.5-flash-native-audio-preview-12-2025": {
     model: "gemini-2.5-flash-native-audio-preview-12-2025",
     isKnownModel: true,
@@ -1971,10 +2019,22 @@ const KNOWN_LIVE_MODEL_CAPABILITIES: Record<KnownLiveGenerationModel, GeminiLive
       supportsVadConfig: true,
     },
     limits: {
-      minThinkingBudget: LIVE_MODEL_THINKING_SUPPORT?.parameter === "thinkingBudget" ? LIVE_MODEL_THINKING_SUPPORT.minBudget : null,
-      maxThinkingBudget: LIVE_MODEL_THINKING_SUPPORT?.parameter === "thinkingBudget" ? LIVE_MODEL_THINKING_SUPPORT.maxBudget : null,
+      supportedThinkingLevels: [],
+      minThinkingBudget: LIVE_25_MODEL_THINKING_SUPPORT?.parameter === "thinkingBudget" ? LIVE_25_MODEL_THINKING_SUPPORT.minBudget : null,
+      maxThinkingBudget: LIVE_25_MODEL_THINKING_SUPPORT?.parameter === "thinkingBudget" ? LIVE_25_MODEL_THINKING_SUPPORT.maxBudget : null,
     },
-    supportedOptions: LIVE_OPTION_KEYS,
+    supportedOptions: [
+      "systemInstruction",
+      "voiceName",
+      "tools",
+      "enableGoogleSearch",
+      "enableAffectiveDialog",
+      "enableProactiveAudio",
+      "thinkingBudget",
+      "includeThoughts",
+      "vadConfig",
+      "audioWorkletModulePath",
+    ],
     unsupportedOptions: [],
   },
 };
@@ -2211,6 +2271,7 @@ const LIVE_FALLBACK_CAPABILITIES: GeminiLiveModelCapabilities = {
     supportsVadConfig: true,
   },
   limits: {
+    supportedThinkingLevels: [],
     minThinkingBudget: 0,
     maxThinkingBudget: null,
   },
@@ -2595,6 +2656,13 @@ export function getLiveModelConfigOptions(modelId: string): Array<GeminiConfigOp
         ...baseDescriptor,
         min: capabilities.limits.minThinkingBudget ?? baseDescriptor.min,
         max: capabilities.limits.maxThinkingBudget ?? baseDescriptor.max,
+      };
+    }
+
+    if (optionKey === "thinkingLevel") {
+      return {
+        ...baseDescriptor,
+        allowedValues: capabilities.limits.supportedThinkingLevels.length > 0 ? capabilities.limits.supportedThinkingLevels : baseDescriptor.allowedValues,
       };
     }
 

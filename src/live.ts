@@ -1,4 +1,4 @@
-import { ActivityHandling, EndSensitivity, Modality, Session, StartSensitivity } from "@google/genai";
+import { ActivityHandling, EndSensitivity, Modality, Session, StartSensitivity, ThinkingLevel } from "@google/genai";
 import type { FunctionCall, LiveConnectConfig, LiveServerMessage } from "@google/genai";
 import { GeminiBaseService } from "./base.js";
 import type { GeminiServiceOptions } from "./base.js";
@@ -59,6 +59,8 @@ export interface VadConfig {
   silenceDurationMs?: number;
 }
 
+export type GeminiLiveThinkingLevel = "minimal" | "low" | "medium" | "high";
+
 /**
  * Configuration options for establishing a live streaming Gemini session.
  */
@@ -113,6 +115,8 @@ export interface LiveChatSessionOptions extends GeminiServiceOptions {
   enableProactiveAudio?: boolean;
 
   // Thinking
+  /** High-level reasoning intensity for Gemini 3.1 live models. Defaults to "minimal". */
+  thinkingLevel?: GeminiLiveThinkingLevel;
   /** The token budget allocated for internal chain-of-thought. */
   thinkingBudget?: number;
   /** Whether to stream back the thought process before the final response. */
@@ -125,8 +129,25 @@ export interface LiveChatSessionOptions extends GeminiServiceOptions {
   audioWorkletModulePath?: string;
 }
 
-const DEFAULT_LIVE_MODEL = "gemini-2.5-flash-native-audio-preview-12-2025";
+const DEFAULT_LIVE_MODEL = "gemini-3.1-flash-live-preview";
 const DEFAULT_VOICE = "Aoede";
+
+function isGemini31LiveModel(model: string | null | undefined) {
+  return typeof model === "string" && model.trim().toLowerCase() === "gemini-3.1-flash-live-preview";
+}
+
+function mapLiveThinkingLevel(level: GeminiLiveThinkingLevel | undefined) {
+  switch (level) {
+    case "low":
+      return ThinkingLevel.LOW;
+    case "medium":
+      return ThinkingLevel.MEDIUM;
+    case "high":
+      return ThinkingLevel.HIGH;
+    default:
+      return ThinkingLevel.MINIMAL;
+  }
+}
 
 function getMissingLiveClientRuntimeApis() {
   const missingApis: string[] = [];
@@ -211,7 +232,8 @@ export class GeminiLiveChatSession extends GeminiBaseService {
     assertLiveClientRuntime();
 
     // If v1alpha features are needed, set apiVersion
-    const needsAlpha = options.enableAffectiveDialog || options.enableProactiveAudio;
+    const selectedModel = options.model || DEFAULT_LIVE_MODEL;
+    const needsAlpha = !isGemini31LiveModel(selectedModel) && (options.enableAffectiveDialog || options.enableProactiveAudio);
     const effectiveOptions = needsAlpha ? { ...options, apiVersion: "v1alpha" } : options;
     super(effectiveOptions);
     this.options = options;
@@ -378,6 +400,11 @@ export class GeminiLiveChatSession extends GeminiBaseService {
       return;
     }
 
+    if (isGemini31LiveModel(this.options.model || DEFAULT_LIVE_MODEL)) {
+      this.session.sendRealtimeInput({ text });
+      return;
+    }
+
     this.session.sendClientContent({
       turns: [
         {
@@ -445,6 +472,28 @@ export class GeminiLiveChatSession extends GeminiBaseService {
     }
 
     return `${base.trim()}\n\nTool Instructions:\n${toolInstructions}`.trim();
+  }
+
+  private buildThinkingConfig(model: string): LiveConnectConfig["thinkingConfig"] | undefined {
+    if (isGemini31LiveModel(model)) {
+      return {
+        thinkingLevel: mapLiveThinkingLevel(this.options.thinkingLevel),
+        ...(this.options.includeThoughts && { includeThoughts: true }),
+      };
+    }
+
+    if (this.options.thinkingBudget !== undefined) {
+      return {
+        thinkingBudget: this.options.thinkingBudget,
+        ...(this.options.includeThoughts && { includeThoughts: true }),
+      };
+    }
+
+    if (this.options.includeThoughts) {
+      return { includeThoughts: true };
+    }
+
+    return undefined;
   }
 
   /**
@@ -521,6 +570,8 @@ export class GeminiLiveChatSession extends GeminiBaseService {
     geminiLog.debug("Connecting live session with voice:", voiceName);
 
     const model = this.options.model || DEFAULT_LIVE_MODEL;
+    const isGemini31Live = isGemini31LiveModel(model);
+    const thinkingConfig = this.buildThinkingConfig(model);
 
     this.modelConfig = {
       responseModalities: [Modality.AUDIO],
@@ -535,19 +586,14 @@ export class GeminiLiveChatSession extends GeminiBaseService {
       // Session resumption
       sessionResumption: this.lastSessionHandle ? { handle: this.lastSessionHandle } : {},
       // Native audio features
-      ...(this.options.enableAffectiveDialog && {
+      ...(!isGemini31Live && this.options.enableAffectiveDialog && {
         enableAffectiveDialog: true,
       }),
-      ...(this.options.enableProactiveAudio && {
+      ...(!isGemini31Live && this.options.enableProactiveAudio && {
         proactivity: { proactiveAudio: true },
       }),
       // Thinking config
-      ...(this.options.thinkingBudget !== undefined && {
-        thinkingConfig: {
-          thinkingBudget: this.options.thinkingBudget,
-          ...(this.options.includeThoughts && { includeThoughts: true }),
-        },
-      }),
+      ...(thinkingConfig && { thinkingConfig }),
       realtimeInputConfig: {
         activityHandling: ActivityHandling.START_OF_ACTIVITY_INTERRUPTS,
         // VAD config
@@ -627,12 +673,9 @@ export class GeminiLiveChatSession extends GeminiBaseService {
               geminiLog.info("Live session setup complete. Model is ready to respond.");
               this.options.onSetupComplete?.();
 
-              if (greetingPrompt) {
-                this.session?.sendClientContent({
-                  turns: [{ role: "user", parts: [{ text: greetingPrompt }] }],
-                  turnComplete: true,
-                });
-              }
+            if (greetingPrompt) {
+                this.sendTextMessage(greetingPrompt);
+            }
             }
 
             if (message.toolCall?.functionCalls?.length) {

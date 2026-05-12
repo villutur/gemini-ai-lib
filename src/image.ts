@@ -665,7 +665,7 @@ export class GeminiImageService extends GeminiBaseService {
     parts: Part[],
     options?: { model?: string },
   ): Promise<string> {
-    const model = options?.model || "gemini-3.1-flash-lite-preview";
+    const model = options?.model || "gemini-3.1-flash-lite";
     const systemInstruction = `You are an expert SVG designer. Generate a highly detailed, clean, and scalable SVG image based on the request.
 Do NOT wrap the response in markdown code blocks. Return ONLY the raw <svg>...</svg> string.
 Ensure the SVG uses a proper viewBox and modern, attractive styling.`;

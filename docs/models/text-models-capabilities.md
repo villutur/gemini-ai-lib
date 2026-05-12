@@ -8,7 +8,7 @@ Here is the comprehensive technical breakdown for the current **Gemini 2.5 and 3
 | **gemini-2.5-flash**              | 1M               | 64k               | Supported     | Supported | Balanced speed and intelligence.    |
 | **gemini-2.5-pro**                | 2M               | 64k               | Adaptive      | Supported | High-reasoning, large context.      |
 | **gemini-3-flash-preview**        | 1M               | 32k               | PhD-level     | Supported | Rivaling Pro models at Flash speed. |
-| **gemini-3.1-flash-lite-preview** | 1M               | 64k               | No            | Supported | Ultra-low latency agentic tasks.    |
+| **gemini-3.1-flash-lite** | 1M               | 64k               | No            | Supported | Ultra-low latency agentic tasks.    |
 | **gemini-3.1-pro-preview**        | 2M               | 128k              | Advanced      | Supported | Flagship reasoning & "Vibe Coding". |
 
 ---
@@ -75,8 +75,8 @@ export const TEXT_MODELS: Record<string, TextModelMetadata> = {
     description: "State-of-the-art for coding and complex logic.",
     attachments: { supportsVideo: true, supportsAudio: true, maxFiles: 3000 },
   },
-  "gemini-3.1-flash-lite-preview": {
-    id: "gemini-3.1-flash-lite-preview",
+  "gemini-3.1-flash-lite": {
+    id: "gemini-3.1-flash-lite",
     name: "Gemini 3.1 Flash-Lite",
     contextWindow: 1000000,
     maxOutput: 65536,

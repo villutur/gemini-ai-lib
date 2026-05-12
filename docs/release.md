@@ -3,6 +3,20 @@
 This document describes the repo-safe manual release flow for
 `@villutur/gemini-ai-lib`.
 
+## Next Release Notes
+
+- Breaking: `gemini-3.1-flash-lite-preview` catalog entries and examples were
+  replaced by `gemini-3.1-flash-lite`.
+- Breaking: `gemini-embedding-2-preview` catalog entries and examples were
+  replaced by `gemini-embedding-2`; consumers must still reindex when changing
+  embedding model families.
+- Breaking: `GeminiLiveChatSession` now defaults to
+  `gemini-3.1-flash-live-preview`; the 2.5 native-audio preview remains in the
+  live catalog for compatibility.
+- Breaking: Interactions wrappers now target `@google/genai` 2.x and the
+  `steps` schema. Consumers should read `interaction.steps` and `step.*`
+  stream events instead of legacy `outputs`/content-delta shapes.
+
 ## Prerequisites
 
 Before starting a release:

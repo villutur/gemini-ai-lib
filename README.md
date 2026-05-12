@@ -12,6 +12,27 @@ implementation examples, take a look at
 
 PRs are welcome.
 
+## Breaking Changes In 0.6.4
+
+- `@google/genai` is upgraded to `^2.1.0`. Consumers should run their normal
+  typecheck after upgrading because SDK type names and Interactions response
+  shapes changed.
+- Interactions responses use the new `steps` schema. Read
+  `interaction.steps` and stream `step.*` events instead of legacy
+  `outputs`/content-delta shapes.
+- The text and Interactions catalogs now use `gemini-3.1-flash-lite` instead
+  of `gemini-3.1-flash-lite-preview`.
+- The embedding catalog now uses `gemini-embedding-2` instead of
+  `gemini-embedding-2-preview`. Existing indexes still need a full reindex
+  when switching between embedding model families.
+- `GeminiLiveChatSession` now defaults to
+  `gemini-3.1-flash-live-preview`. The previous
+  `gemini-2.5-flash-native-audio-preview-12-2025` model remains in
+  `GEMINI_LIVE_MODELS` for compatibility.
+- Gemini 3.1 Flash Live uses `thinkingLevel` (`minimal`, `low`, `medium`,
+  `high`) instead of `thinkingBudget`; proactive audio and affective dialogue
+  are not advertised for that model.
+
 ## Purpose
 
 - Keep reusable Gemini SDK wiring out of individual projects
@@ -121,13 +142,13 @@ model IDs below.
 - `gemini-2.5-flash`
 - `gemini-2.5-pro`
 - `gemini-3-flash-preview`
-- `gemini-3.1-flash-lite-preview`
+- `gemini-3.1-flash-lite`
 - `gemini-3.1-pro-preview`
 
 ### Embeddings
 
 - `gemini-embedding-001`
-- `gemini-embedding-2-preview`
+- `gemini-embedding-2`
 
 ### Image
 
@@ -154,6 +175,7 @@ model IDs below.
 
 ### Live
 
+- `gemini-3.1-flash-live-preview`
 - `gemini-2.5-flash-native-audio-preview-12-2025`
 
 ### Interactions
@@ -163,7 +185,7 @@ Models:
 - `gemini-2.5-flash-lite`
 - `gemini-2.5-flash`
 - `gemini-2.5-pro`
-- `gemini-3.1-flash-lite-preview`
+- `gemini-3.1-flash-lite`
 - `gemini-3-flash-preview`
 - `gemini-3.1-pro-preview`
 - `lyria-3-clip-preview`
@@ -235,7 +257,7 @@ The root package also re-exports a curated image-focused subset of
 
 The root package also re-exports the SDK `Interactions` type namespace plus
 library aliases such as `GeminiInteraction`, `GeminiInteractionCreateParams`,
-`GeminiInteractionSSEEvent`, and common Interactions content/tool types.
+`GeminiInteractionSSEEvent`, and common Interactions step/content types.
 
 Persistent text chat can layer on top of `GeminiChatService` while still
 letting the consuming project own validation and request shaping.
@@ -290,6 +312,9 @@ const followUp = await interactions.create({
 });
 
 const retrieved = await interactions.get(followUp.id, { include_input: true });
+const finalText = retrieved.steps
+  .find((step) => step.type === "model_output")
+  ?.content?.find((content) => content.type === "text")?.text;
 
 const stream = await interactions.createStream({
   model: "gemini-3-flash-preview",
@@ -308,7 +333,7 @@ const research = await interactions.create({
 });
 
 await interactions.cancel(research.id);
-console.log(retrieved.status);
+console.log(retrieved.status, finalText);
 ```
 
 Projects can also inject their own structured logger adapter when they want
@@ -479,7 +504,7 @@ capability exports:
 ```ts
 import { getEmbeddingModelCapabilities, getEmbeddingModelConfigOptions } from "@villutur/gemini-ai-lib";
 
-const embeddingModel = "gemini-embedding-2-preview";
+const embeddingModel = "gemini-embedding-2";
 const embeddingCapabilities = getEmbeddingModelCapabilities(embeddingModel);
 const embeddingOptionDescriptors = getEmbeddingModelConfigOptions(embeddingModel);
 
@@ -569,14 +594,14 @@ consumer control through the underlying SDK client.
 
 The official Gemini video docs may describe more knobs over time, but this
 library only exports video config metadata for the stable `@google/genai`
-`1.46.0` contract plus explicitly typed `generateVideos(...)` config fields.
+`2.x` contract plus explicitly typed `generateVideos(...)` config fields.
 
 Live-session UIs can use the same capability pattern:
 
 ```ts
 import { getLiveModelCapabilities, getLiveModelConfigOptions } from "@villutur/gemini-ai-lib";
 
-const liveModel = "gemini-2.5-flash-native-audio-preview-12-2025";
+const liveModel = "gemini-3.1-flash-live-preview";
 const liveCapabilities = getLiveModelCapabilities(liveModel);
 const liveOptions = getLiveModelConfigOptions(liveModel);
 ```
@@ -591,9 +616,10 @@ import { GeminiLiveChatSession } from "@villutur/gemini-ai-lib";
 
 const liveSession = new GeminiLiveChatSession({
   apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY,
-  model: "gemini-2.5-flash-native-audio-preview-12-2025",
+  model: "gemini-3.1-flash-live-preview",
   systemInstruction: "You are a concise voice assistant.",
   voiceName: "Aoede",
+  thinkingLevel: "minimal",
   onSetupComplete() {
     console.log("Live session ready.");
   },
@@ -668,7 +694,7 @@ const batchResult = await embeddingService.embedTexts(
 const vectors = batchResult.embeddings;
 ```
 
-`gemini-embedding-2-preview` also supports multimodal embedding. One content
+`gemini-embedding-2` also supports multimodal embedding. One content
 entry with multiple parts returns one aggregated embedding, while multiple
 entries return multiple embeddings:
 
@@ -688,7 +714,7 @@ const result = await embeddingService.embedContent(
     parts: [{ text: "An image of a dog" }, imagePart],
   },
   {
-    model: "gemini-embedding-2-preview",
+    model: "gemini-embedding-2",
     taskType: "RETRIEVAL_DOCUMENT",
     outputDimensionality: 1536,
   },
@@ -700,7 +726,7 @@ const aggregatedVector = result.embedding;
 Reduced dimensions such as `768` and `1536` can be a strong storage/latency
 tradeoff, but consumer-side normalization may still be appropriate for
 similarity-focused use cases. Switching between `gemini-embedding-001` and
-`gemini-embedding-2-preview` requires reindexing because the vector spaces are
+`gemini-embedding-2` requires reindexing because the vector spaces are
 not interchangeable.
 
 Music generation uses Lyria through the stable `generateContent(...)` path:

@@ -8,7 +8,7 @@ video, and other content. These resulting embeddings can then be used for tasks
 such as semantic search, classification, and clustering, providing more accurate,
 context-aware results than keyword-based approaches.
 
-The latest model, `gemini-embedding-2-preview`, is the first multimodal
+The latest model, `gemini-embedding-2`, is the first multimodal
 embedding model in the Gemini API. It maps text, images,
 video, audio, and documents into a unified embedding space, enabling cross-modal
 search, classification, and clustering across over 100 languages. See the
@@ -399,7 +399,7 @@ another when run.
 
 ## Controlling embedding size
 
-Both `gemini-embedding-001` and `gemini-embedding-2-preview` are trained using
+Both `gemini-embedding-001` and `gemini-embedding-2` are trained using
 the Matryoshka Representation Learning (MRL) technique which teaches a model to
 learn high-dimensional embeddings that have initial segments (or prefixes) which
 are also useful, simpler versions of the same data.
@@ -542,7 +542,7 @@ dimensions achieving scores comparable to their higher dimension counterparts.
 
 ## Multimodal embeddings
 
-The `gemini-embedding-2-preview` model supports multimodal input, allowing you
+The `gemini-embedding-2` model supports multimodal input, allowing you
 to embed images, video, audio, and documents content alongside text. All modalities
 are mapped into the same embedding space, enabling cross-modal search and
 comparison.
@@ -562,7 +562,7 @@ The overall maximum input tokens limit is 8192 tokens.
 ### Embedding images
 
 The following example shows how to embed an image using
-`gemini-embedding-2-preview`.
+`gemini-embedding-2`.
 
 Images can be provided as inline data or as uploaded files
 through the [Files API](https://ai.google.dev/gemini-api/docs/files).
@@ -578,7 +578,7 @@ through the [Files API](https://ai.google.dev/gemini-api/docs/files).
     client = genai.Client()
 
     result = client.models.embed_content(
-        model='gemini-embedding-2-preview',
+        model='gemini-embedding-2',
         contents=[
             types.Part.from_bytes(
                 data=image_bytes,
@@ -600,7 +600,7 @@ through the [Files API](https://ai.google.dev/gemini-api/docs/files).
         const imgBase64 = fs.readFileSync("example.png", { encoding: "base64" });
 
         const response = await ai.models.embedContent({
-            model: 'gemini-embedding-2-preview',
+            model: 'gemini-embedding-2',
             contents: [{
                 inlineData: {
                     mimeType: 'image/png',
@@ -619,7 +619,7 @@ through the [Files API](https://ai.google.dev/gemini-api/docs/files).
     IMG_PATH="/path/to/your/image.png"
     IMG_BASE64=$(base64 -w0 "${IMG_PATH}")
 
-    curl "https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2-preview:embedContent" \
+    curl "https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:embedContent" \
         -H "Content-Type: application/json" \
         -H "x-goog-api-key: ${GEMINI_API_KEY}" \
         -d '{
@@ -654,7 +654,7 @@ Use the `parts` field to combine multiple inputs:
         image_bytes = f.read()
 
     result = client.models.embed_content(
-        model='gemini-embedding-2-preview',
+        model='gemini-embedding-2',
         contents=[
             types.Content(
                 parts=[
@@ -683,7 +683,7 @@ Use the `parts` field to combine multiple inputs:
         const imgBase64 = fs.readFileSync("dog.png", { encoding: "base64" });
 
         const response = await ai.models.embedContent({
-            model: 'gemini-embedding-2-preview',
+            model: 'gemini-embedding-2',
             contents: {
                 parts: [
                     { text: 'An image of a dog' },
@@ -702,7 +702,7 @@ Use the `parts` field to combine multiple inputs:
     IMG_PATH="/path/to/your/dog.png"
     IMG_BASE64=$(base64 -w0 "${IMG_PATH}")
 
-    curl "https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2-preview:embedContent" \
+    curl "https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:embedContent" \
         -H "Content-Type: application/json" \
         -H "x-goog-api-key: ${GEMINI_API_KEY}" \
         -d '{
@@ -730,7 +730,7 @@ On the other hand, this example creates multiple embeddings in one embedding cal
         image_bytes = f.read()
 
     result = client.models.embed_content(
-        model='gemini-embedding-2-preview',
+        model='gemini-embedding-2',
         contents=[
             "The dog is cute",
             types.Part.from_bytes(
@@ -755,7 +755,7 @@ On the other hand, this example creates multiple embeddings in one embedding cal
         const imgBase64 = fs.readFileSync("dog.png", { encoding: "base64" });
 
         const response = await ai.models.embedContent({
-            model: 'gemini-embedding-2-preview',
+            model: 'gemini-embedding-2',
             contents: [
                 'The dog is cute',
                 {
@@ -777,17 +777,17 @@ On the other hand, this example creates multiple embeddings in one embedding cal
     IMG_PATH="/path/to/your/dog.png"
     IMG_BASE64=$(base64 -w0 "${IMG_PATH}")
 
-    curl "https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2-preview:batchEmbedContents" \
+    curl "https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:batchEmbedContents" \
         -H "Content-Type: application/json" \
         -H "x-goog-api-key: ${GEMINI_API_KEY}" \
         -d '{
             "requests": [
                 {
-                    "model": "models/gemini-embedding-2-preview",
+                    "model": "models/gemini-embedding-2",
                     "content": {"parts": [{"text": "The dog is cute"}]}
                 },
                 {
-                    "model": "models/gemini-embedding-2-preview",
+                    "model": "models/gemini-embedding-2",
                     "content": {"parts": [{"inline_data": {"mime_type": "image/png", "data": "'"${IMG_BASE64}"'"}}]}
                 }
             ]
@@ -796,7 +796,7 @@ On the other hand, this example creates multiple embeddings in one embedding cal
 ### Embedding audio
 
 The following example shows how to embed an audio file using
-`gemini-embedding-2-preview`.
+`gemini-embedding-2`.
 
 Audio files can be provided as inline data or as uploaded files
 through the [Files API](https://ai.google.dev/gemini-api/docs/files).
@@ -812,7 +812,7 @@ through the [Files API](https://ai.google.dev/gemini-api/docs/files).
     client = genai.Client()
 
     result = client.models.embed_content(
-        model='gemini-embedding-2-preview',
+        model='gemini-embedding-2',
         contents=[
             types.Part.from_bytes(
                 data=audio_bytes,
@@ -834,7 +834,7 @@ through the [Files API](https://ai.google.dev/gemini-api/docs/files).
         const audioBase64 = fs.readFileSync("example.mp3", { encoding: "base64" });
 
         const response = await ai.models.embedContent({
-            model: 'gemini-embedding-2-preview',
+            model: 'gemini-embedding-2',
             contents: [{
                 inlineData: {
                     mimeType: 'audio/mpeg',
@@ -853,7 +853,7 @@ through the [Files API](https://ai.google.dev/gemini-api/docs/files).
     AUDIO_PATH="/path/to/your/example.mp3"
     AUDIO_BASE64=$(base64 -w0 "${AUDIO_PATH}")
 
-    curl "https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2-preview:embedContent" \
+    curl "https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:embedContent" \
         -H "Content-Type: application/json" \
         -H "x-goog-api-key: ${GEMINI_API_KEY}" \
         -d '{
@@ -870,7 +870,7 @@ through the [Files API](https://ai.google.dev/gemini-api/docs/files).
 ### Embedding video
 
 The following example shows how to embed a video using
-`gemini-embedding-2-preview`.
+`gemini-embedding-2`.
 
 Videos can be provided as inline data or as uploaded files
 through the [Files API](https://ai.google.dev/gemini-api/docs/files).
@@ -886,7 +886,7 @@ through the [Files API](https://ai.google.dev/gemini-api/docs/files).
         video_bytes = f.read()
 
     result = client.models.embed_content(
-        model='gemini-embedding-2-preview',
+        model='gemini-embedding-2',
         contents=[
             types.Part.from_bytes(
                 data=video_bytes,
@@ -908,7 +908,7 @@ through the [Files API](https://ai.google.dev/gemini-api/docs/files).
         const videoBase64 = fs.readFileSync("example.mp4", { encoding: "base64" });
 
         const response = await ai.models.embedContent({
-            model: 'gemini-embedding-2-preview',
+            model: 'gemini-embedding-2',
             contents: [{
                 inlineData: {
                     mimeType: 'video/mp4',
@@ -927,7 +927,7 @@ through the [Files API](https://ai.google.dev/gemini-api/docs/files).
     VIDEO_PATH="/path/to/your/video.mp4"
     VIDEO_BASE64=$(base64 -w0 "${VIDEO_PATH}")
 
-    curl "https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2-preview:embedContent" \
+    curl "https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:embedContent" \
         -H "Content-Type: application/json" \
         -H "x-goog-api-key: ${GEMINI_API_KEY}" \
         -d '{
@@ -963,7 +963,7 @@ through the [Files API](https://ai.google.dev/gemini-api/docs/files).
     client = genai.Client()
 
     result = client.models.embed_content(
-        model='gemini-embedding-2-preview',
+        model='gemini-embedding-2',
         contents=[
             types.Part.from_bytes(
                 data=pdf_bytes,
@@ -985,7 +985,7 @@ through the [Files API](https://ai.google.dev/gemini-api/docs/files).
         const pdfBase64 = fs.readFileSync("example.pdf", { encoding: "base64" });
 
         const response = await ai.models.embedContent({
-            model: 'gemini-embedding-2-preview',
+            model: 'gemini-embedding-2',
             contents: [{
                 inlineData: {
                     mimeType: 'application/pdf',
@@ -1004,7 +1004,7 @@ through the [Files API](https://ai.google.dev/gemini-api/docs/files).
     PDF_PATH="/path/to/your/example.pdf"
     PDF_BASE64=$(base64 -w0 "${PDF_PATH}")
 
-    curl "https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2-preview:embedContent" \
+    curl "https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:embedContent" \
         -H "Content-Type: application/json" \
         -H "x-goog-api-key: ${GEMINI_API_KEY}" \
         -d '{
@@ -1065,14 +1065,14 @@ with Gemini Embedding.
 
 ## Model versions
 
-### Gemini Embedding 2 Preview
+### Gemini Embedding 2
 
 | Property | Description |
 |---|---|
-| Model code | **Gemini API** `gemini-embedding-2-preview` |
+| Model code | **Gemini API** `gemini-embedding-2` |
 | Supported data types | **Input** Text, image, video, audio, PDF **Output** Text embeddings |
 | Token limits^[\[\*\]](https://ai.google.dev/gemini-api/docs/tokens)^ | **Input token limit** 8,192 **Output dimension size** Flexible, supports: 128 - 3072, Recommended: 768, 1536, 3072 |
-| Versions | Read the [model version patterns](https://ai.google.dev/gemini-api/docs/models/gemini#model-versions) for more details. - Preview: `gemini-embedding-2-preview` |
+| Versions | Read the [model version patterns](https://ai.google.dev/gemini-api/docs/models/gemini#model-versions) for more details. - Preview: `gemini-embedding-2` |
 | Latest update | November 2025 |
 
 ### Gemini Embedding
@@ -1090,9 +1090,9 @@ For deprecated Embeddings models, visit the [Deprecations](https://ai.google.dev
 ## Migration from gemini-embedding-001
 
 The embedding spaces between `gemini-embedding-001` and
-`gemini-embedding-2-preview` are **incompatible** . This means you cannot
+`gemini-embedding-2` are **incompatible** . This means you cannot
 directly compare embeddings generated by one model with embeddings generated by
-the other. If you are upgrading to `gemini-embedding-2-preview`, you must
+the other. If you are upgrading to `gemini-embedding-2`, you must
 re-embed all of your existing data.
 
 ## Batch embeddings

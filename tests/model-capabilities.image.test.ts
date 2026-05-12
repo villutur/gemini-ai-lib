@@ -4,7 +4,7 @@ import {
   PersonGeneration,
   getImageModelCapabilities,
   getImageModelConfigOptions,
-} from "../src/index.ts";
+} from "../dist/index.js";
 
 test("image capability metadata keeps gemini-2.5-flash-image conservative", () => {
   const capabilities = getImageModelCapabilities("gemini-2.5-flash-image");

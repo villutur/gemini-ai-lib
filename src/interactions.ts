@@ -35,31 +35,37 @@ export type GeminiInteractionGetParamsStreaming = Interactions.InteractionGetPar
 export type GeminiInteractionDeleteParams = Interactions.InteractionDeleteParams;
 export type GeminiInteractionCancelParams = Interactions.InteractionCancelParams;
 export type GeminiInteractionSSEEvent = Interactions.InteractionSSEEvent;
-export type GeminiInteractionStartEvent = Interactions.InteractionStartEvent;
-export type GeminiInteractionCompleteEvent = Interactions.InteractionCompleteEvent;
+export type GeminiInteractionCreatedEvent = Interactions.InteractionCreatedEvent;
+export type GeminiInteractionCompletedEvent = Interactions.InteractionCompletedEvent;
 export type GeminiInteractionStatusUpdate = Interactions.InteractionStatusUpdate;
+export type GeminiInteractionStep = Interactions.Step;
+export type GeminiInteractionStepStart = Interactions.StepStart;
+export type GeminiInteractionStepDelta = Interactions.StepDelta;
+export type GeminiInteractionStepStop = Interactions.StepStop;
+export type GeminiInteractionUserInputStep = Interactions.UserInputStep;
+export type GeminiInteractionModelOutputStep = Interactions.ModelOutputStep;
+export type GeminiInteractionThoughtStep = Interactions.ThoughtStep;
+export type GeminiInteractionFunctionCallStep = Interactions.FunctionCallStep;
+export type GeminiInteractionFunctionResultStep = Interactions.FunctionResultStep;
+export type GeminiInteractionGoogleSearchCallStep = Interactions.GoogleSearchCallStep;
+export type GeminiInteractionGoogleSearchResultStep = Interactions.GoogleSearchResultStep;
+export type GeminiInteractionCodeExecutionCallStep = Interactions.CodeExecutionCallStep;
+export type GeminiInteractionCodeExecutionResultStep = Interactions.CodeExecutionResultStep;
+export type GeminiInteractionURLContextCallStep = Interactions.URLContextCallStep;
+export type GeminiInteractionURLContextResultStep = Interactions.URLContextResultStep;
+export type GeminiInteractionMCPServerToolCallStep = Interactions.MCPServerToolCallStep;
+export type GeminiInteractionMCPServerToolResultStep = Interactions.MCPServerToolResultStep;
+export type GeminiInteractionFileSearchCallStep = Interactions.FileSearchCallStep;
+export type GeminiInteractionFileSearchResultStep = Interactions.FileSearchResultStep;
 export type GeminiInteractionTextContent = Interactions.TextContent;
 export type GeminiInteractionImageContent = Interactions.ImageContent;
 export type GeminiInteractionAudioContent = Interactions.AudioContent;
 export type GeminiInteractionVideoContent = Interactions.VideoContent;
 export type GeminiInteractionDocumentContent = Interactions.DocumentContent;
-export type GeminiInteractionFunctionCallContent = Interactions.FunctionCallContent;
-export type GeminiInteractionFunctionResultContent = Interactions.FunctionResultContent;
-export type GeminiInteractionGoogleSearchCallContent = Interactions.GoogleSearchCallContent;
-export type GeminiInteractionGoogleSearchResultContent = Interactions.GoogleSearchResultContent;
-export type GeminiInteractionCodeExecutionCallContent = Interactions.CodeExecutionCallContent;
-export type GeminiInteractionCodeExecutionResultContent = Interactions.CodeExecutionResultContent;
-export type GeminiInteractionURLContextCallContent = Interactions.URLContextCallContent;
-export type GeminiInteractionURLContextResultContent = Interactions.URLContextResultContent;
-export type GeminiInteractionMCPServerToolCallContent = Interactions.MCPServerToolCallContent;
-export type GeminiInteractionMCPServerToolResultContent = Interactions.MCPServerToolResultContent;
-export type GeminiInteractionFileSearchCallContent = Interactions.FileSearchCallContent;
-export type GeminiInteractionFileSearchResultContent = Interactions.FileSearchResultContent;
 export type GeminiInteractionGenerationConfig = Interactions.GenerationConfig;
 export type GeminiInteractionTool = Interactions.Tool;
 export type GeminiInteractionToolChoiceConfig = Interactions.ToolChoiceConfig;
 export type GeminiInteractionUsage = Interactions.Usage;
-export type GeminiInteractionTurn = Interactions.Turn;
 
 export type GeminiInteractionRequestOptions = Parameters<Interactions["create"]>[1];
 export type GeminiInteractionCreateResult = Awaited<ReturnType<Interactions["create"]>>;
@@ -117,6 +123,11 @@ function summarizeUsage(value: unknown) {
     input_tokens: typeof value.input_tokens === "number" ? value.input_tokens : undefined,
     output_tokens: typeof value.output_tokens === "number" ? value.output_tokens : undefined,
     total_tokens: typeof value.total_tokens === "number" ? value.total_tokens : undefined,
+    total_input_tokens: typeof value.total_input_tokens === "number" ? value.total_input_tokens : undefined,
+    total_output_tokens: typeof value.total_output_tokens === "number" ? value.total_output_tokens : undefined,
+    total_thought_tokens: typeof value.total_thought_tokens === "number" ? value.total_thought_tokens : undefined,
+    total_cached_tokens: typeof value.total_cached_tokens === "number" ? value.total_cached_tokens : undefined,
+    total_tool_use_tokens: typeof value.total_tool_use_tokens === "number" ? value.total_tool_use_tokens : undefined,
     thoughts_tokens: typeof value.thoughts_tokens === "number" ? value.thoughts_tokens : undefined,
     cached_content_tokens: typeof value.cached_content_tokens === "number" ? value.cached_content_tokens : undefined,
     tool_use_prompt_tokens: typeof value.tool_use_prompt_tokens === "number" ? value.tool_use_prompt_tokens : undefined,
@@ -129,13 +140,13 @@ function summarizeUsage(value: unknown) {
   });
 }
 
-function summarizeToolCallsFromOutputs(outputs: unknown) {
-  if (!Array.isArray(outputs)) {
+export function summarizeToolCallsFromSteps(steps: unknown) {
+  if (!Array.isArray(steps)) {
     return { toolCallCount: 0, toolCallNames: [] };
   }
-  const toolCallNames = outputs
-    .filter((output): output is Record<string, unknown> => isRecord(output) && output.type === "function_call" && typeof output.name === "string")
-    .map((output) => output.name as string);
+  const toolCallNames = steps
+    .filter((step): step is Record<string, unknown> => isRecord(step) && step.type === "function_call" && typeof step.name === "string")
+    .map((step) => step.name as string);
   return {
     toolCallCount: toolCallNames.length,
     toolCallNames,
@@ -153,7 +164,7 @@ function summarizeInteractionResult(result: unknown) {
     model: typeof result.model === "string" ? result.model : undefined,
     agent: typeof result.agent === "string" ? result.agent : undefined,
     usage: summarizeUsage(result.usage),
-    ...summarizeToolCallsFromOutputs(result.outputs),
+    ...summarizeToolCallsFromSteps(result.steps),
   });
 }
 
@@ -236,8 +247,8 @@ export class GeminiInteractionsService extends GeminiBaseService {
   /**
    * Creates a streamed model or agent interaction.
    *
-   * The Interactions API returns final content as `content.*` stream events;
-   * the final `interaction.complete` event intentionally has empty outputs.
+   * The Interactions API streams typed `step.*` events and finishes with an
+   * `interaction.completed` event whose interaction contains compact steps.
    */
   public async createStream(
     params: GeminiInteractionCreateParamsStreaming,
@@ -298,8 +309,11 @@ export class GeminiInteractionsService extends GeminiBaseService {
         let finalInteraction: unknown;
         try {
           for await (const event of stream) {
-            if (isRecord(event) && event.event_type === "interaction.complete") {
-              finalInteraction = event.interaction;
+            if (isRecord(event)) {
+              const eventType: string = typeof event.event_type === "string" ? event.event_type : "";
+              if (eventType === "interaction.completed" || eventType === "interaction.complete") {
+                finalInteraction = event.interaction;
+              }
             }
             yield event;
           }
