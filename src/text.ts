@@ -28,7 +28,7 @@ export type TextGenerationModel =
  * Options for generating text responses using Gemini.
  */
 export interface GenerateTextOptions {
-  /** The specific Gemini model to use for generation. Defaults to 'gemini-3-flash-preview'. */
+  /** The specific Gemini model to use for generation. Defaults to 'gemini-3.5-flash'. */
   model?: TextGenerationModel;
   /** System instructions to guide the model's behavior and persona. */
   systemInstruction?: string;
@@ -65,7 +65,7 @@ export class GeminiTextService extends GeminiBaseService {
     contents: ContentListUnion,
     options?: GenerateTextOptions,
   ): Promise<GenerateContentResponse> {
-    const model = options?.model || "gemini-3-flash-preview";
+    const model = options?.model || "gemini-3.5-flash";
 
     // Merge tools
     const configTools = options?.tools || this.defaultTools;
@@ -156,7 +156,7 @@ export class GeminiTextService extends GeminiBaseService {
 
   /**
    * High-speed text generation optimized for low latency tasks.
-   * Uses `gemini-3-flash-preview` by default for a fast general-purpose path.
+   * Uses `gemini-3.5-flash` by default for a fast general-purpose path.
    *
    * @param prompt The string prompt for the fast generation task.
    * @param options Configuration options (excluding the model overrides).
@@ -168,7 +168,7 @@ export class GeminiTextService extends GeminiBaseService {
   ): Promise<GenerateContentResponse> {
     return this.generateContent(prompt, {
       ...options,
-      model: "gemini-3-flash-preview",
+      model: "gemini-3.5-flash",
     });
   }
 

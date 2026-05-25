@@ -75,6 +75,7 @@ const GEMINI_2_5_FLASH_LITE_THINKING_SUPPORT: GeminiThinkingBudgetModelSupport =
 };
 
 const GEMINI_MODEL_THINKING_SUPPORT: Readonly<Record<string, GeminiThinkingModelSupport>> = {
+  "gemini-3.5-flash": GEMINI_3_FLASH_THINKING_SUPPORT,
   "gemini-3-flash-preview": GEMINI_3_FLASH_THINKING_SUPPORT,
   // The thinking guide recommends `thinkingLevel` for Gemini 3 models and onward.
   // Gemini 3.1 Flash-Lite also has an official model-page example using `thinking_level="high"`.

@@ -7,7 +7,8 @@ Here is the comprehensive technical breakdown for the current **Gemini 2.5 and 3
 | **gemini-2.5-flash-lite**         | 1M               | 64k               | No            | Supported | Lowest cost, extreme throughput.    |
 | **gemini-2.5-flash**              | 1M               | 64k               | Supported     | Supported | Balanced speed and intelligence.    |
 | **gemini-2.5-pro**                | 2M               | 64k               | Adaptive      | Supported | High-reasoning, large context.      |
-| **gemini-3-flash-preview**        | 1M               | 32k               | PhD-level     | Supported | Rivaling Pro models at Flash speed. |
+| **gemini-3.5-flash**              | 1M               | 65k               | Level-based   | Supported | Stable frontier Flash for agentic and coding tasks. |
+| **gemini-3-flash-preview**        | 1M               | 32k               | PhD-level     | Supported | Preview predecessor retained for compatibility. |
 | **gemini-3.1-flash-lite** | 1M               | 64k               | No            | Supported | Ultra-low latency agentic tasks.    |
 | **gemini-3.1-pro-preview**        | 2M               | 128k              | Advanced      | Supported | Flagship reasoning & "Vibe Coding". |
 
@@ -82,6 +83,15 @@ export const TEXT_MODELS: Record<string, TextModelMetadata> = {
     maxOutput: 65536,
     thinking: "none",
     description: "Ultra-fast and cheap for high-volume agentic tasks.",
+    attachments: { supportsVideo: true, supportsAudio: true, maxFiles: 3000 },
+  },
+  "gemini-3.5-flash": {
+    id: "gemini-3.5-flash",
+    name: "Gemini 3.5 Flash",
+    contextWindow: 1048576,
+    maxOutput: 65536,
+    thinking: "dynamic",
+    description: "Stable frontier Flash for long-horizon agentic and coding tasks.",
     attachments: { supportsVideo: true, supportsAudio: true, maxFiles: 3000 },
   },
   "gemini-3-flash-preview": {

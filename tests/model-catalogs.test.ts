@@ -5,9 +5,28 @@ import {
   GEMINI_TEXT_MODELS,
   getEmbeddingModelCapabilities,
   getEmbeddingModelDisplayName,
+  getGeminiThinkingSupportForModel,
   getTextModelCapabilities,
   getTextModelDisplayName,
 } from "../dist/index.js";
+
+test("text catalogs expose Gemini 3.5 Flash as the recommended Flash model", () => {
+  assert.equal(GEMINI_TEXT_MODELS.includes("gemini-3.5-flash"), true);
+  assert.equal(GEMINI_TEXT_MODELS.includes("gemini-3-flash-preview"), true);
+  assert.equal(
+    GEMINI_TEXT_MODELS.indexOf("gemini-3.5-flash") < GEMINI_TEXT_MODELS.indexOf("gemini-3-flash-preview"),
+    true,
+  );
+  assert.equal(getTextModelDisplayName("gemini-3.5-flash"), "Gemini 3.5 Flash");
+
+  const capabilities = getTextModelCapabilities("gemini-3.5-flash");
+  assert.equal(capabilities.isKnownModel, true);
+  assert.equal(capabilities.thinking.mode, "level");
+  assert.deepEqual(capabilities.thinking.supportedLevels, ["minimal", "low", "medium", "high"]);
+
+  const thinkingSupport = getGeminiThinkingSupportForModel("gemini-3.5-flash");
+  assert.equal(thinkingSupport?.parameter, "thinkingLevel");
+});
 
 test("text catalogs use the stable Gemini 3.1 Flash Lite id", () => {
   assert.equal(GEMINI_TEXT_MODELS.includes("gemini-3.1-flash-lite"), true);

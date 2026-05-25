@@ -1687,6 +1687,19 @@ const KNOWN_TEXT_MODEL_CAPABILITIES: Record<KnownTextGenerationModel, GeminiText
     supportedOptions: TEXT_OPTION_KEYS,
     unsupportedOptions: [],
   },
+  "gemini-3.5-flash": {
+    model: "gemini-3.5-flash",
+    isKnownModel: true,
+    source: "catalog",
+    attachmentLimits: COMMON_TEXT_ATTACHMENT_LIMITS,
+    thinking: {
+      support: getGeminiThinkingSupportForModel("gemini-3.5-flash") ?? null,
+      mode: "level",
+      supportedLevels: ["minimal", "low", "medium", "high"],
+    },
+    supportedOptions: TEXT_OPTION_KEYS,
+    unsupportedOptions: [],
+  },
   "gemini-3-flash-preview": {
     model: "gemini-3-flash-preview",
     isKnownModel: true,

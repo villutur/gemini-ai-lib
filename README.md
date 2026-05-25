@@ -12,6 +12,17 @@ implementation examples, take a look at
 
 PRs are welcome.
 
+## Changes In 0.6.5
+
+- `gemini-3.5-flash` is now included in the text and Interactions catalogs.
+- Text and chat helpers now default to `gemini-3.5-flash`; the previous
+  `gemini-3-flash-preview` model remains available in the catalogs for
+  compatibility.
+- Gemini 3.5 Flash uses `thinkingLevel` (`minimal`, `low`, `medium`, `high`)
+  for thinking control. Google recommends leaving Gemini 3.x sampling
+  parameters at their model defaults unless a consumer has a specific reason to
+  override them.
+
 ## Breaking Changes In 0.6.4
 
 - `@google/genai` is upgraded to `^2.1.0`. Consumers should run their normal
@@ -141,6 +152,7 @@ model IDs below.
 - `gemini-2.5-flash-lite`
 - `gemini-2.5-flash`
 - `gemini-2.5-pro`
+- `gemini-3.5-flash`
 - `gemini-3-flash-preview`
 - `gemini-3.1-flash-lite`
 - `gemini-3.1-pro-preview`
@@ -186,6 +198,7 @@ Models:
 - `gemini-2.5-flash`
 - `gemini-2.5-pro`
 - `gemini-3.1-flash-lite`
+- `gemini-3.5-flash`
 - `gemini-3-flash-preview`
 - `gemini-3.1-pro-preview`
 - `lyria-3-clip-preview`
@@ -213,7 +226,7 @@ const textService = new GeminiTextService({
 });
 
 const response = await textService.generateTextString("Summarize the current rollout status in three bullets.", {
-  model: "gemini-3-flash-preview",
+  model: "gemini-3.5-flash",
   systemInstruction: "Answer like a pragmatic product engineer. Be concise and explicit.",
   temperature: 0.4,
 });
@@ -246,7 +259,7 @@ const textService = new GeminiTextService({
 });
 
 const response: GenerateContentResponse = await textService.generateContent(contents, {
-  model: "gemini-3-flash-preview",
+  model: "gemini-3.5-flash",
 });
 ```
 
@@ -267,7 +280,7 @@ import { createGeminiTextChatHistory, GeminiChatService } from "@villutur/gemini
 
 const chatService = new GeminiChatService({
   apiKey: process.env.GEMINI_API_KEY,
-  model: "gemini-3-flash-preview",
+  model: "gemini-3.5-flash",
   history: createGeminiTextChatHistory([
     {
       role: "user",
@@ -292,6 +305,9 @@ Interaction objects are stored by default by the Gemini API (`store=true`) so
 they can be retrieved, continued with `previous_interaction_id`, or run in the
 background. Set `store: false` when a consumer explicitly wants to opt out, but
 stateful continuation and background behavior depend on stored interactions.
+For Gemini 3.5 Flash, use Interactions `generationConfig.thinkingLevel`
+(`minimal`, `low`, `medium`, or `high`) for thinking effort. Function results
+must match the preceding function-call `id`, name, and response count.
 
 ```ts
 import { GeminiInteractionsService, type GeminiInteractionCreateParams } from "@villutur/gemini-ai-lib";
@@ -301,12 +317,12 @@ const interactions = new GeminiInteractionsService({
 });
 
 const first = await interactions.create({
-  model: "gemini-3-flash-preview",
+  model: "gemini-3.5-flash",
   input: "Give me a one-sentence project risk summary.",
 } satisfies GeminiInteractionCreateParams);
 
 const followUp = await interactions.create({
-  model: "gemini-3-flash-preview",
+  model: "gemini-3.5-flash",
   previous_interaction_id: first.id,
   input: "Now suggest the safest next action.",
 });
@@ -317,7 +333,7 @@ const finalText = retrieved.steps
   ?.content?.find((content) => content.type === "text")?.text;
 
 const stream = await interactions.createStream({
-  model: "gemini-3-flash-preview",
+  model: "gemini-3.5-flash",
   input: "Stream a concise status update.",
   stream: true,
 });

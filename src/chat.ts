@@ -35,7 +35,7 @@ export function createGeminiTextChatHistory(messages: GeminiTextChatMessage[]): 
  * Options for configuring a persistent chat session.
  */
 export interface ChatSessionOptions extends GeminiServiceOptions {
-  /** The specific text generation model to use. Defaults to 'gemini-3-flash-preview'. */
+  /** The specific text generation model to use. Defaults to 'gemini-3.5-flash'. */
   model?: TextGenerationModel;
   /** System instructions to set the initial behavior and persona of the chat model. */
   systemInstruction?: string;
@@ -82,7 +82,7 @@ export class GeminiChatService extends GeminiBaseService {
   public initSession(): Chat {
     if (this.chatSession) return this.chatSession;
 
-    const model = this.options.model || "gemini-3-flash-preview";
+    const model = this.options.model || "gemini-3.5-flash";
     const configTools = this.options.tools || this.defaultTools;
 
     const config: GenerateContentConfig = {
@@ -112,7 +112,7 @@ export class GeminiChatService extends GeminiBaseService {
    */
   public async sendMessage(message: string | Part[]): Promise<GenerateContentResponse> {
     const chat = this.initSession();
-    const model = this.options.model || "gemini-3-flash-preview";
+    const model = this.options.model || "gemini-3.5-flash";
 
     await this.log({
       level: "info",

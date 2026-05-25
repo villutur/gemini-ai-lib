@@ -37,7 +37,7 @@ function createInteraction(overrides: Partial<GeminiInteraction> = {}): GeminiIn
     created: "2026-01-01T00:00:00Z",
     updated: "2026-01-01T00:00:01Z",
     status: "completed",
-    model: "gemini-3-flash-preview",
+    model: "gemini-3.5-flash",
     usage: { total_input_tokens: 8, total_output_tokens: 4, total_tokens: 12 },
     steps: [{ type: "model_output", content: [{ type: "text", text: "done" }] }],
     ...overrides,
@@ -72,7 +72,7 @@ test("GeminiInteractionsService.create forwards params unchanged and returns the
   };
 
   const params: GeminiInteractionCreateParams = {
-    model: "gemini-3-flash-preview",
+    model: "gemini-3.5-flash",
     input: "Tell me a short joke.",
     previous_interaction_id: "interaction-0",
     store: true,
@@ -85,7 +85,7 @@ test("GeminiInteractionsService.create forwards params unchanged and returns the
   assert.equal(capturedOptions, options);
   assert.equal(logger.events.length, 2);
   assert.equal(logger.events[0]?.message, "Gemini interaction create started.");
-  assert.equal(logger.events[0]?.metadata?.model, "gemini-3-flash-preview");
+  assert.equal(logger.events[0]?.metadata?.model, "gemini-3.5-flash");
   assert.equal(logger.events[0]?.metadata?.hasPreviousInteractionId, true);
   assert.equal(logger.events[1]?.message, "Gemini interaction create completed.");
   assert.equal(logger.events[1]?.metadata?.interactionId, "interaction-1");
@@ -109,7 +109,7 @@ test("GeminiInteractionsService.create preserves streaming results", async () =>
   };
 
   const params = {
-    model: "gemini-3-flash-preview",
+    model: "gemini-3.5-flash",
     input: "Stream this.",
     stream: true,
   } as GeminiInteractionCreateParams;
@@ -143,7 +143,7 @@ test("GeminiInteractionsService.createStream forces stream true and returns the 
   };
 
   const params: GeminiInteractionCreateParamsStreaming = {
-    model: "gemini-3-flash-preview",
+    model: "gemini-3.5-flash",
     input: "Stream this.",
     stream: true,
   };
@@ -265,7 +265,7 @@ test("GeminiInteractionsService logs and rethrows SDK errors", async () => {
   await assert.rejects(
     () =>
       service.create({
-        model: "gemini-3-flash-preview",
+        model: "gemini-3.5-flash",
         input: "fail",
       }),
     sdkError,
@@ -276,7 +276,14 @@ test("GeminiInteractionsService logs and rethrows SDK errors", async () => {
 
 test("Interactions catalogs expose display labels and fallback to raw ids", () => {
   assert.equal(GEMINI_INTERACTION_MODELS.includes("gemini-3.1-flash-lite"), true);
+  assert.equal(GEMINI_INTERACTION_MODELS.includes("gemini-3.5-flash"), true);
+  assert.equal(GEMINI_INTERACTION_MODELS.includes("gemini-3-flash-preview"), true);
+  assert.equal(
+    GEMINI_INTERACTION_MODELS.indexOf("gemini-3.5-flash") < GEMINI_INTERACTION_MODELS.indexOf("gemini-3-flash-preview"),
+    true,
+  );
   assert.equal(GEMINI_INTERACTION_MODELS.includes("gemini-3.1-flash-lite-preview" as never), false);
+  assert.equal(getInteractionModelDisplayName("gemini-3.5-flash"), "Gemini 3.5 Flash");
   assert.equal(getInteractionModelDisplayName("gemini-3-flash-preview"), "Gemini 3 Flash Preview");
   assert.equal(getInteractionModelDisplayName("gemini-3.1-flash-lite"), "Gemini 3.1 Flash Lite");
   assert.equal(getInteractionModelDisplayName("future-model"), "future-model");
@@ -299,7 +306,7 @@ test("summarizeToolCallsFromSteps counts function-call steps", () => {
 });
 
 test("getInteractionModelConfigOptions returns descriptors for known and unknown models", () => {
-  const knownOptions = getInteractionModelConfigOptions("gemini-3-flash-preview");
+  const knownOptions = getInteractionModelConfigOptions("gemini-3.5-flash");
   const unknownOptions = getInteractionModelConfigOptions("future-model");
 
   assert.equal(

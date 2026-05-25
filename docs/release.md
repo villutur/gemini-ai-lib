@@ -5,6 +5,13 @@ This document describes the repo-safe manual release flow for
 
 ## Next Release Notes
 
+- `gemini-3.5-flash` was added to the text and Interactions catalogs and is
+  now the default model for `GeminiTextService` and `GeminiChatService`.
+- `gemini-3-flash-preview` remains in the text and Interactions catalogs for
+  compatibility.
+- Gemini 3.x sampling parameters remain pass-through options, but current
+  Google guidance recommends leaving them at model defaults and using
+  `thinkingLevel` rather than `thinkingBudget`.
 - Breaking: `gemini-3.1-flash-lite-preview` catalog entries and examples were
   replaced by `gemini-3.1-flash-lite`.
 - Breaking: `gemini-embedding-2-preview` catalog entries and examples were

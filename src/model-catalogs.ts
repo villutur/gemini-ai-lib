@@ -8,7 +8,15 @@ export type KnownImageGenerationModel = (typeof GEMINI_IMAGE_MODELS)[number];
 /**
  * Shared list of text-oriented Gemini models for consumer model pickers.
  */
-export const GEMINI_TEXT_MODELS = ["gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-2.5-pro", "gemini-3-flash-preview", "gemini-3.1-flash-lite", "gemini-3.1-pro-preview"] as const;
+export const GEMINI_TEXT_MODELS = [
+  "gemini-2.5-flash-lite",
+  "gemini-2.5-flash",
+  "gemini-2.5-pro",
+  "gemini-3.5-flash",
+  "gemini-3-flash-preview",
+  "gemini-3.1-flash-lite",
+  "gemini-3.1-pro-preview",
+] as const;
 
 export type KnownTextGenerationModel = (typeof GEMINI_TEXT_MODELS)[number];
 
@@ -20,6 +28,7 @@ export const GEMINI_INTERACTION_MODELS = [
   "gemini-2.5-flash",
   "gemini-2.5-pro",
   "gemini-3.1-flash-lite",
+  "gemini-3.5-flash",
   "gemini-3-flash-preview",
   "gemini-3.1-pro-preview",
   "lyria-3-clip-preview",
@@ -87,6 +96,7 @@ export const GEMINI_TEXT_MODEL_DISPLAY_NAMES: Record<KnownTextGenerationModel, s
   "gemini-2.5-flash-lite": "Gemini 2.5 Flash Lite",
   "gemini-2.5-flash": "Gemini 2.5 Flash",
   "gemini-2.5-pro": "Gemini 2.5 Pro",
+  "gemini-3.5-flash": "Gemini 3.5 Flash",
   "gemini-3-flash-preview": "Gemini 3 Flash Preview",
   "gemini-3.1-flash-lite": "Gemini 3.1 Flash Lite",
   "gemini-3.1-pro-preview": "Gemini 3.1 Pro Preview",
@@ -100,10 +110,11 @@ export const GEMINI_INTERACTION_MODEL_DISPLAY_NAMES: Record<KnownInteractionMode
   "gemini-2.5-flash": "Gemini 2.5 Flash",
   "gemini-2.5-pro": "Gemini 2.5 Pro",
   "gemini-3.1-flash-lite": "Gemini 3.1 Flash Lite",
+  "gemini-3.5-flash": "Gemini 3.5 Flash",
   "gemini-3-flash-preview": "Gemini 3 Flash Preview",
   "gemini-3.1-pro-preview": "Gemini 3.1 Pro Preview",
   "lyria-3-clip-preview": "Lyria 3 Clip Preview",
-  "lyria-3-pro-preview": "Lyria 3 Pro Preview"
+  "lyria-3-pro-preview": "Lyria 3 Pro Preview",
 };
 
 /**
