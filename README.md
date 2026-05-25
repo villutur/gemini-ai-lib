@@ -12,6 +12,12 @@ implementation examples, take a look at
 
 PRs are welcome.
 
+## Changes In 0.6.6
+
+- `@google/genai` is updated to `^2.6.0`.
+- The package now documents Node.js `>=20.0.0`, matching the upstream SDK
+  runtime requirement.
+
 ## Changes In 0.6.5
 
 - `gemini-3.5-flash` is now included in the text and Interactions catalogs.

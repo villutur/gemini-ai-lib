@@ -5,6 +5,9 @@ This document describes the repo-safe manual release flow for
 
 ## Next Release Notes
 
+- `@google/genai` is updated to `^2.6.0`.
+- The package now documents Node.js `>=20.0.0`, matching the upstream SDK
+  runtime requirement.
 - `gemini-3.5-flash` was added to the text and Interactions catalogs and is
   now the default model for `GeminiTextService` and `GeminiChatService`.
 - `gemini-3-flash-preview` remains in the text and Interactions catalogs for

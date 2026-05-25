@@ -28,6 +28,9 @@
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -63,7 +66,7 @@
     "prettyfy": "prettier --write \"src/**/*.{js,jsx,mjs,cjs,ts,tsx,json}\""
   },
   "dependencies": {
-    "@google/genai": "^2.1.0",
+    "@google/genai": "^2.6.0",
     "consola": "^3.4.2"
   },
   "devDependencies": {
